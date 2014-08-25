@@ -1,0 +1,3 @@
+tornado>=4.0.0
+redis>=1.7.0
+valideer>=0.3.1
