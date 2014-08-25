@@ -65,7 +65,7 @@ def ratelimited(user=None, guest=None, callback=None, format="tornrate:%s"):
             if current is None:
                 redis.setex(key, tokens-1, refresh)
                 remaining, ttl = tokens-1, refresh
-            elif current:
+            else:
                 remaining, ttl = int(redis.decr(key)), int(redis.ttl(key))
 
             # set headers

@@ -13,12 +13,11 @@ class Handler(RequestHandler):
 
     @validated({"name":valideer.Enum(("steve", "casey"))})
     def post(self):
-        print "\033[92m....\033[0m", self.validated
-        self.finish("Hello, %s!" % self.validated['name'])
+        self.finish("Hello, %s!" % self.validated.get('name', 'nobody'))
 
-    @validated({"name":valideer.Enum(("steve", "casey"))}, params=True)
+    @validated({"+name":valideer.Enum(("steve", "casey"))}, urlargs=False)
     def put(self):
-        self.finish("Hello, %s!" % self.validated['name'])
+        self.finish("Hello, %s!" % self.validated.get('name', 'nobody'))
 
 
 class Test(AsyncHTTPTestCase):
@@ -39,9 +38,17 @@ class Test(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, "Hello, steve!")
 
+    def test_invali_body_args(self):
+        response = self.fetch("/", method="POST", body="name")
+        self.assertEqual(response.code, 400)
+
+    def test_valid_accepts(self):
+        response = self.fetch("/", method="POST", body="name=steve", headers={"Accept": "application/json"})
+        self.assertEqual(response.code, 400)
+
     def test_extra_params(self):
         response = self.fetch("/?exta=true", method="PUT", body="name=steve")
-        self.assertEqual(response.code, 400)
+        self.assertEqual(response.code, 200)
 
     def test_valid_body_json(self):
         response = self.fetch("/", method="POST", body='{"name": "casey"}')
