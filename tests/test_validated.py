@@ -19,6 +19,15 @@ class Handler(RequestHandler):
     def put(self):
         self.finish("Hello, %s!" % self.validated.get('name', 'nobody'))
 
+    def _handle_request_exception(self, e):
+        if isinstance(e, valideer.ValidationError):
+            self.set_status(400)
+            self._reason = str(e)
+            self.write_error(400, reason=str(e))
+
+        else:
+            super(Handler, self)._handle_request_exception(e)
+
 
 class Test(AsyncHTTPTestCase):
     def get_app(self):

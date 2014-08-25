@@ -8,7 +8,7 @@ classifiers = ["Development Status :: 4 - Beta",
                "Topic :: Software Development :: Testing"]
 
 setup(name='tornwrap',
-      version="0.0.3",
+      version="0.0.4",
       description="tornadoweb decorator",
       long_description=None,
       classifiers=classifiers,
