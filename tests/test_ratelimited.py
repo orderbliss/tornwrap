@@ -11,7 +11,7 @@ class Handler(RequestHandler):
     def initialize(self, redis):
         self.redis = redis
 
-    @ratelimited(guest=(5, 2), callback="is_rate_limited")
+    @ratelimited(guest=(5, 2))
     def get(self):
         self.write("Hello, world!")
 
@@ -19,15 +19,15 @@ class Handler(RequestHandler):
     def post(self):
         self.write("Hello, world!")
 
-    @ratelimited(user=(8, 2), guest=(1, 2), callback="is_rate_limited")
+    @ratelimited(user=(8, 2), guest=(1, 2))
     def put(self):
         self.write("Hello, world!")
 
     def get_current_user(self):
         return self.request.headers.get('X-User')=='yes'
 
-    def is_rate_limited(self, tokens, remaining, ttl):
-        # notice we do not raise HTTPErorr here
+    def was_rate_limited(self, tokens, remaining, ttl):
+        # notice we do not raise HTTPError here
         # because it will reset headers
         self.set_status(403)
         self.finish("Rate Limited")
