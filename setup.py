@@ -7,11 +7,8 @@ classifiers = ["Development Status :: 4 - Beta",
                "License :: OSI Approved :: Apache Software License",
                "Topic :: Software Development :: Testing"]
 
-with open('requirements.txt', 'r') as f:
-    requirements = f.readlines()
-
 setup(name='tornwrap',
-      version="0.0.1",
+      version="0.0.3",
       description="tornadoweb decorator",
       long_description=None,
       classifiers=classifiers,
@@ -21,8 +18,7 @@ setup(name='tornwrap',
       url='http://github.com/stevepeak/tornwrap',
       license='http://www.apache.org/licenses/LICENSE-2.0',
       packages=['tornwrap'],
-      package_data=None,
       include_package_data=True,
       zip_safe=True,
-      install_requires=requirements,
+      install_requires=["tornado>=4.0.0", "valideer>=0.3.1"],
       entry_points=None)
