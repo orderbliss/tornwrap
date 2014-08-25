@@ -6,9 +6,10 @@ pip install tornwrap
 
 # Usage
 
-| [Basic Auth](#Basic-Auth) | [Rate Limited](#Rate-Limited) | [Validated](#Validated) |
-| ------------------------- | ----------------------------- | ----------------------- |
-| `@authenticated`          | `@ratelimited`                | `@validated`            |
+| [Basic WWW Auth](#basic-auth) | [Rate Limited](#rate-limited) |               [Validated](#validated)               |
+| ----------------------------- | ----------------------------- | --------------------------------------------------- |
+| `@authenticated`              | `@ratelimited`                | `@validated`                                        |
+| via `Basic realm=Restricted`  | w/ user and guest usage rates | using [valideer](https://github.com/podio/valideer) |
 
 
 ## Basic Auth
