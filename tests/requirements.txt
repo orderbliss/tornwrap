@@ -3,3 +3,4 @@ nose
 rednose
 nose-cov
 codecov
+rollbar

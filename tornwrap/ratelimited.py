@@ -1,7 +1,6 @@
 import time
 import functools
 from tornado.web import HTTPError
-from tornado.netutil import is_valid_ip
 
 
 def ratelimited(user=None, guest=None, format="tornrate:%s"):
@@ -18,7 +17,7 @@ def ratelimited(user=None, guest=None, format="tornrate:%s"):
     """
     try:
         import redis
-    except ImportError:
+    except ImportError: # pragma: no cover
         raise ImportError("redis is required to use torndown.ratelimtied")
 
     if user:
