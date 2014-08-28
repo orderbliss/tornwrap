@@ -8,7 +8,7 @@ classifiers = ["Development Status :: 4 - Beta",
                "Topic :: Software Development :: Testing"]
 
 setup(name='tornwrap',
-      version="0.0.5",
+      version="0.0.6",
       description="tornado decorators and basics: @authenticated @ratelimited @validated ErrorHandler",
       long_description=None,
       classifiers=classifiers,
