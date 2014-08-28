@@ -1,7 +1,7 @@
 import os
 import rollbar
+import valideer
 from tornado.web import Application
-from valideer import ValidationError
 from tornado.testing import AsyncHTTPTestCase
 
 from tornwrap import ErrorHandler
@@ -13,13 +13,14 @@ class Handler(ErrorHandler):
 
     def get(self, type):
         if type == 'validation':
-            raise ValidationError("ValidationError exception")
+            valideer.parse(dict(value="string")).validate(dict(value=10))
         elif type == 'assert':
             assert True is False, 'never gonna happen'
         elif type == 'arg':
             self.get_argument("required")
         else:
             raise Exception("Generic exception")
+
 
 class OtherHandler(ErrorHandler):
     def prepare(self):
@@ -49,7 +50,7 @@ class Test(AsyncHTTPTestCase):
         self.assertEqual(response.code, 400)
         self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
         self.assertIn("<h1>400</h1>", response.body)
-        self.assertIn("<pre>ValidationError exception</pre>", response.body)
+        self.assertIn("<pre>Invalid value 10 (int): must be string (at value)</pre>", response.body)
         self.assertIn("&quot;uri&quot;: &quot;/validation&quot;,", response.body)
 
     def test_assertion(self):
