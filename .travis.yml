@@ -3,6 +3,9 @@ notifications:
   email: false
 services:
   - redis-server
+env:
+  global:
+    - secure: "eN+YmeD3YQ8Y5OXjCed+rIDb0IigXd50VDYxECGSpj/vqhCYiMQBl2li39lg\nMCnUyoGc+Ce2twBZ1rohc5Jqu4m3AYb9hPtpGvLUk9i+4agIgcJeAuVZFYi1\nZgXqvtKKTxXf7ViuAGEuc5ImUnHzPRJWJS62BRQciMdimfOBzAc="
 python:
   - 2.7
   - pypy
