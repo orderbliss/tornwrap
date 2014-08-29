@@ -101,7 +101,6 @@ class ErrorHandler(RequestHandler):
                     details['additional'] = value.value
                 if 'is not valid' in value.msg:
                     details['invalid'] = value.context
-                    
 
                 self.log("ValidationError", details)
                 self.set_status(400)

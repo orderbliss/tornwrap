@@ -4,6 +4,8 @@ from urlparse import parse_qs
 from tornado.web import HTTPError
 from tornado.escape import json_decode
 
+from .validators import *
+
 
 def validated(schema, urlargs=True, additional_properties=False):
     parsed = parse(schema, additional_properties=additional_properties)
