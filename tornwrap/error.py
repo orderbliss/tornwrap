@@ -78,7 +78,7 @@ class ErrorHandler(RequestHandler):
             try:
                 kwargs['payload'] = self.get_payload()
                 app_log.warning(json_encode(kwargs))
-            except Exception as e:
+            except Exception as e: # pragma: no cover
                 app_log.warning(str(e))
 
         except Exception as e: # pragma: no cover
@@ -115,7 +115,7 @@ class ErrorHandler(RequestHandler):
                                details=details, exc_info=(typ, value, tb))
 
             else:
-                if self.settings.get('rollbar_access_token'):
+                if self.settings.get('rollbar_access_token') and not (typ is HTTPError and value.status_code < 500):
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L218
                     try:
                         self._rollbar_token = rollbar.report_exc_info(request=self.request, payload_data=self.get_payload())
