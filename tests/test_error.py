@@ -19,7 +19,7 @@ class Handler(ErrorHandler):
     def get(self, type):
         if type == 'validation':
             dic = dict([(k,tryint(v[0])) for k,v in self.request.arguments.items()])
-            valideer.parse(dict(value="string"), additional_properties=False).validate(dic)
+            valideer.parse(dict(value="string", pattern=valideer.Pattern(r"^match\sthi")), additional_properties=False).validate(dic)
         elif type == 'assert':
             assert True is False, 'never gonna happen'
         elif type == 'arg':
@@ -29,10 +29,19 @@ class Handler(ErrorHandler):
         raise Exception("uncaught")
 
 
+class NoPayloadHandler(ErrorHandler):
+    def get(self):
+        self.finish(self.get_payload())
+
 
 class Test(AsyncHTTPTestCase):
     def get_app(self):
-        return Application([('/(\w+)', Handler)])
+        return Application([(r'/no/payload', NoPayloadHandler), (r'/(\w+)', Handler)])
+
+    def test_no_payload(self):
+        response = self.fetch("/no/payload")
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body, "{}")
 
     def test_basics(self):
         response = self.fetch("/")
@@ -49,6 +58,12 @@ class Test(AsyncHTTPTestCase):
         self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
         self.assertIn("<h1>400</h1>", response.body)
         self.assertIn("<pre>Invalid value 10 (int): must be string (at value)</pre>", response.body)
+
+        response = self.fetch("/validation?pattern=fail")
+        self.assertEqual(response.code, 400)
+        self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
+        self.assertIn("<h1>400</h1>", response.body)
+        self.assertIn("(str): must match pattern ^match", response.body)
 
     def test_assertion(self):
         response = self.fetch("/assert")
@@ -67,7 +82,7 @@ class Test(AsyncHTTPTestCase):
         self.assertIn("&quot;uri&quot;: &quot;/arg&quot;,", response.body)
 
 
-class TestAgain(AsyncHTTPTestCase):
+class TestRollbar(AsyncHTTPTestCase):
     def get_app(self):
         rollbar.init(os.getenv('ROLLBAR_TOKEN'), environment='tornwrap-ci')
         return Application([('/(\w+)?', Handler)], 

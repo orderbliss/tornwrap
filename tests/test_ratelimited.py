@@ -33,9 +33,23 @@ class Handler(RequestHandler):
         self.finish("Rate Limited")
 
 
+class HandlerNoCallback(RequestHandler):
+    def initialize(self, redis):
+        self.redis = redis
+
+    @ratelimited(user=(5, 2))
+    def get(self):
+        self.write("Hello, world!")
+
+    def get_current_user(self):
+        return self.request.headers.get('X-User')=='yes'
+
+
 class TestRateLimit(AsyncHTTPTestCase):
     def get_app(self):
-        return Application([('/', Handler, dict(redis=redis.Redis()))])
+        r = redis.Redis()
+        return Application([('/', Handler, dict(redis=r)),
+                            ('/no-callback', HandlerNoCallback, dict(redis=r))])
 
     def setUp(self):
         redis.Redis().flushall()
@@ -45,7 +59,7 @@ class TestRateLimit(AsyncHTTPTestCase):
         self.ratelimit(5, method="GET")
 
     def test_ratelimit_2(self):
-        self.ratelimit(1, False, method="POST", body="")
+        self.ratelimit(1, method="POST", body="")
 
     def test_ratelimit_3(self):
         self.ratelimit(8, method="PUT", headers={"X-User": "yes"}, body="")
@@ -53,11 +67,19 @@ class TestRateLimit(AsyncHTTPTestCase):
     def test_ratelimit_4(self):
         self.ratelimit(1, method="PUT", body="")
 
-    def ratelimit(self, tokens, caught=True, **kwargs):
+    def test_no_callback(self):
+        self.ratelimit(5, False, method="GET", headers={"X-User": "yes"}, url="/no-callback")
+        response = self.fetch("/no-callback")
+        self.assertEqual(response.code, 200)
+        self.assertNotIn("X-RateLimit-Limit", response.headers)
+        self.assertNotIn("X-RateLimit-Remaining", response.headers)
+        self.assertNotIn("X-RateLimit-Reset", response.headers)
+
+    def ratelimit(self, tokens, caught=True, url="/", **kwargs):
         for again in (1, 1, 0):
             for x in xrange(1, 10):
                 remaining = (tokens - x)
-                response = self.fetch("/", **kwargs)
+                response = self.fetch(url, **kwargs)
                 print "Request #", x, response.headers.get("X-RateLimit-Remaining")
                 if caught:
                     self.assertEqual(response.headers.get("X-RateLimit-Limit"), str(tokens))

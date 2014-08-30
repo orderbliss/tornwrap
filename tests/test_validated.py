@@ -80,3 +80,7 @@ class Test(AsyncHTTPTestCase):
     def test_invalid(self):
         response = self.fetch("/?name=joe")
         self.assertEqual(response.code, 400)
+
+    def test_initial_values(self):
+        self.assertRaises(ValueError, validated, arguments=True)
+        self.assertRaises(ValueError, validated, body=True)
