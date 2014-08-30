@@ -3,4 +3,4 @@ from .ratelimited import ratelimited
 from .authenticated import authenticated
 from .error import ErrorHandler
 
-version = VERSION = __version__ = "0.0.6"
+version = VERSION = __version__ = "0.0.7"

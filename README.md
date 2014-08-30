@@ -72,9 +72,15 @@ from tornwrap import validated
 
 class Handler(RequestHandler):
     @validated({"+name":"string"})
-    def get(self):
-        # all your data is in `self.validated`
-        self.finish("Hello, %s!" % self.validated['name'])
+    def get(self, arguments):
+        # can validate url arguments
+        self.finish("Hello, %s!" % arguments['name'])
+    
+    @validated(body={"+name":"string"})
+    def post(self, body):
+        # can validate body (json or urlencoded)
+        self.finish("Hello, %s!" % body['name'])
+
 ```
 
 # `@cached` (future feature)
