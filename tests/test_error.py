@@ -1,7 +1,6 @@
 import os
 import rollbar
 import valideer
-from tornado import template
 from tornado.web import Application
 from tornado.testing import AsyncHTTPTestCase
 
@@ -71,9 +70,9 @@ class Test(AsyncHTTPTestCase):
 class TestAgain(AsyncHTTPTestCase):
     def get_app(self):
         rollbar.init(os.getenv('ROLLBAR_TOKEN'), environment='tornwrap-ci')
-        loader = template.Loader(os.path.dirname(__file__))
         return Application([('/(\w+)?', Handler)], 
-                           error_template=loader.load("error.html"),
+                           error_template="error.html",
+                           template_path="./tests",
                            rollbar_access_token=os.getenv('ROLLBAR_TOKEN'),
                            default_handler_class=ErrorHandler)
 

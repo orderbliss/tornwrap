@@ -53,6 +53,11 @@ TEMPLATE = template.Template("""
 
 
 class ErrorHandler(RequestHandler):
+    def initialize(self, *a, **k):
+        super(ErrorHandler, self).initialize(*a, **k)
+        if self.settings.get('error_template'):
+            assert self.settings.get('template_path'), "settings `template_path` must be set to use custom `error_template`"
+
     def get_payload(self):
         """Override with your implementation of retrieving error payload data
         ex.
@@ -149,7 +154,7 @@ class ErrorHandler(RequestHandler):
                     request=dumps(self.request.__dict__, indent=2, default=lambda a: str(a)))
 
         if self.settings.get('error_template'):
-            self.finish(self.settings.get('error_template').generate(**args))
+            self.render(self.settings.get('error_template'), **args)
         else:
             self.finish(TEMPLATE.generate(**args))
 
