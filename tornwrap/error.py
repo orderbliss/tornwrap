@@ -95,6 +95,7 @@ class ErrorHandler(RequestHandler):
 
             elif typ is ValidationError:
                 details = dict(context=value.context,
+                               reason=str(value),
                                value=str(repr(value.value)),
                                value_type=get_type_name(value.value.__class__))
                 if 'additional properties' in value.msg:

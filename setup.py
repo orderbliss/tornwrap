@@ -8,7 +8,7 @@ classifiers = ["Development Status :: 4 - Beta",
                "Topic :: Software Development :: Testing"]
 
 setup(name='tornwrap',
-      version="0.0.6",
+      version="0.0.7",
       description="tornado decorators and basics: @authenticated @ratelimited @validated ErrorHandler",
       long_description=None,
       classifiers=classifiers,
@@ -20,5 +20,5 @@ setup(name='tornwrap',
       packages=['tornwrap'],
       include_package_data=True,
       zip_safe=True,
-      install_requires=["tornado>=4.0.0", "valideer>=0.3.1"],
+      install_requires=["tornado>=4.0.0", "valideer>=0.3.1", "timestring>=1.6.1"],
       entry_points=None)
