@@ -45,7 +45,7 @@ def validated(arguments=None, body=None, extra_arguments=False, extra_body=False
             # -------------------
             if arguments:
                 # include url arguments
-                _arguments = dict([(k, v[0] if len(v)==1 else v) for k, v in self.request.query_arguments.items() if not ignore.match(k)]) \
+                _arguments = dict([(k, v[0] if len(v)==1 else v) for k, v in self.request.query_arguments.items() if v!=[''] and not ignore.match(k)]) \
                              if self.request.query_arguments else {}
                 kwargs["arguments"] = arguments.validate(_arguments)
 

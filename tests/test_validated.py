@@ -50,6 +50,10 @@ class Test(AsyncHTTPTestCase):
         response = self.fetch("/", method="POST", body="name")
         self.assertEqual(response.code, 400)
 
+    def test_ignore_empty(self):
+        response = self.fetch("/?joe=", method="POST", body="name=casey")
+        self.assertEqual(response.code, 200)
+
     def test_valid_accepts(self):
         response = self.fetch("/", method="POST", body="name=steve", headers={"Accept": "application/json"})
         self.assertEqual(response.code, 400)
