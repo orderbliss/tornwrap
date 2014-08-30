@@ -149,7 +149,7 @@ class ErrorHandler(RequestHandler):
                     request=dumps(self.request.__dict__, indent=2, default=lambda a: str(a)))
 
         if self.settings.get('error_template'):
-            self.render(self.settings.get('error_template'), **args)
+            self.finish(self.settings.get('error_template').generate(**args))
         else:
             self.finish(TEMPLATE.generate(**args))
 
