@@ -12,8 +12,14 @@ def validated(arguments=None, body=None, extra_arguments=False, extra_body=False
     # arguments to ignore parsing
     ignore = re.compile(r"^_")
     application_json = re.compile(r".*application.+json.*")
-    body = parse(body, additional_properties=extra_body) if body else None
-    arguments = parse(arguments, additional_properties=extra_arguments) if arguments else None
+    if type(body) is dict:
+        body = parse(body, additional_properties=extra_body)
+    elif body not in (None, False):
+        raise ValueError("body must be type None, False, or dict")
+    if type(arguments) is dict:
+        arguments = parse(arguments, additional_properties=extra_arguments)
+    elif arguments not in (None, False):
+        raise ValueError("arguments must be type None, False, or dict")
 
     def wrapper(method):
         @wraps(method)
@@ -21,11 +27,10 @@ def validated(arguments=None, body=None, extra_arguments=False, extra_body=False
             # ------------------
             # Validate Body Data
             # ------------------
-            if body and self.request.body:
+            if body:
                 try:
-                    _body = json_decode(self.request.body)
+                    _body = json_decode(self.request.body or "{}")
                 except:
-                    print "\033[92m....\033[0m", application_json.match(self.request.headers.get('Accept', '')), self.request.headers.get('Accept', '')
                     if application_json.match(self.request.headers.get('Accept', '')):
                         raise HTTPError(400, "no json object could be decoded")
 
@@ -49,9 +54,8 @@ def validated(arguments=None, body=None, extra_arguments=False, extra_body=False
                              if self.request.query_arguments else {}
                 kwargs["arguments"] = arguments.validate(_arguments)
 
-            elif arguments is False:
-                if any(map(ignore.match, self.request.arguments)):
-                    raise HTTPError(400, "no url arguments allowed")
+            elif arguments is False and self.request.query_arguments and not any(map(ignore.match, self.request.query_arguments)):
+                raise HTTPError(400, "no url arguments allowed")
 
             return method(self, *args, **kwargs)
 

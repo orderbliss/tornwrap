@@ -15,6 +15,10 @@ class Handler(RequestHandler):
     def post(self, body):
         self.finish("Hello, %s!" % body.get('name', 'nobody'))
 
+    @validated(body=False, arguments=False)
+    def patch(self):
+        self.finish("Hello, World!")
+
     @validated(arguments={"joe": "bool"}, body={"+name":valideer.Enum(("steve", "casey"))})
     def put(self, arguments, body):
         self.finish("Hello, %s!" % arguments.get('name', 'nobody'))
@@ -45,6 +49,12 @@ class Test(AsyncHTTPTestCase):
         response = self.fetch("/?this=not+checked", method="POST", body="name=steve")
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, "Hello, steve!")
+
+    def test_no_body_args(self):
+        self.assertEqual(self.fetch("/?this=no", method="PATCH", body="").code, 400)
+        self.assertEqual(self.fetch("/", method="PATCH", body='{"no":0}').code, 400)
+        self.assertEqual(self.fetch("/", method="PATCH", body="").code, 200)
+        self.assertEqual(self.fetch("/?_=123456789", method="PATCH", body="").code, 200)
 
     def test_invali_body_args(self):
         response = self.fetch("/", method="POST", body="name")
