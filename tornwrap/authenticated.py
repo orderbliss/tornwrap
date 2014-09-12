@@ -11,7 +11,7 @@ def authenticated(method):
             self.set_status(401)
             self.set_header('WWW-Authenticate', 'Basic realm=Restricted')
             self.finish()
-            return False
+            return
         self.current_user = self.get_authenticated_user(*tuple(decodestring(auth_header[6:]).split(':',1)))
         if not self.current_user:
             raise HTTPError(401)
