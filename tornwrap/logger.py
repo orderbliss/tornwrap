@@ -40,8 +40,8 @@ def handler(handler):
             add = "\033[92m%(method)s %(status)s\033[0m " % _log
         
     if _log['status'] > 499:
-        log.fatal("%s: %s"%(add, dumps(_log, separators=(',',':'))))
+        log.fatal("%s%s"%(add, dumps(_log)))
     elif _log['status'] > 399:
-        log.warn("%s: %s"%(add, dumps(_log, separators=(',',':'))))
+        log.warn("%s%s"%(add, dumps(_log)))
     else:
-        log.info("%s: %s"%(add, dumps(_log, separators=(',',':'))))
+        log.info("%s%s"%(add, dumps(_log)))
