@@ -28,7 +28,7 @@ def handler(handler):
     if hasattr(handler, '_rollbar_token'):
         _log["rollbar"] = handler._rollbar_token
     if hasattr(handler, 'get_log_payload'):
-        _log.update(handler.get_log_payload())
+        _log.update(handler.get_log_payload() or {})
 
     add = ""
     if (os.getenv('DEBUG') == 'TRUE'):
