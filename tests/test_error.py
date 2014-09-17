@@ -29,6 +29,11 @@ class Handler(ErrorHandler):
     def post(self, arg):
         raise Exception("uncaught")
 
+    def get_current_user(self):
+        class UserExample:
+            id = 10
+        return UserExample()
+
 
 class NoPayloadHandler(ErrorHandler):
     def get(self):

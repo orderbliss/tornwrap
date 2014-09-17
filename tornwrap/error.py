@@ -85,7 +85,6 @@ class ErrorHandler(RequestHandler):
                     log.error("Rollbar exception: %s", str(e))
 
             try:
-                kwargs['payload'] = payload
                 getattr(log, lvl)(json_encode(kwargs))
             except Exception as e: # pragma: no cover
                 log.warning(str(e))
