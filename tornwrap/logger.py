@@ -25,10 +25,10 @@ def handler(handler):
             "reason":    handler._reason,
             "ms":        "%.0f" % (1000.0 * handler.request.request_time())}
 
-    if handler.current_user:
-        _log["user"] = repr(handler.current_user)
     if hasattr(handler, '_rollbar_token'):
         _log["rollbar"] = handler._rollbar_token
+    if hasattr(handler, 'get_log_payload'):
+        _log.update(handler.get_log_payload())
 
     add = ""
     if (os.getenv('DEBUG') == 'TRUE'):

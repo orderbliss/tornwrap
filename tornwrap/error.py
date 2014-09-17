@@ -59,7 +59,7 @@ class ErrorHandler(RequestHandler):
         if self.settings.get('error_template'):
             assert self.settings.get('template_path'), "settings `template_path` must be set to use custom `error_template`"
 
-    def get_payload(self):
+    def get_rollbar_payload(self):
         """Override with your implementation of retrieving error payload data
         ex.
           {
@@ -68,18 +68,20 @@ class ErrorHandler(RequestHandler):
         """
         return {}
 
+    def get_log_payload(self):
+        return {}
+
     def log(self, lvl=None, _exception_title=None, kwargs={}):
         # 'critical', 'error', 'warning', 'info', 'debug'
         lvl = (lvl or 'info').lower()
         try:
-            payload = self.get_payload()
             if lvl in ('critical', 'error') and self.settings.get('rollbar_access_token'):
                 try:
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
                     self._rollbar_token = rollbar.report_message(_exception_title or "Generic", level=lvl,
                                                                  request=self.request,
                                                                  extra_data=kwargs,
-                                                                 payload_data=payload)
+                                                                 payload_data=self.get_rollbar_payload())
                     kwargs['rollbar'] = self._rollbar_token
                 except Exception as e: # pragma: no cover
                     log.error("Rollbar exception: %s", str(e))
@@ -127,7 +129,7 @@ class ErrorHandler(RequestHandler):
                 if self.settings.get('rollbar_access_token') and not (typ is HTTPError and value.status_code < 500):
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L218
                     try:
-                        self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), request=self.request, payload_data=self.get_payload())
+                        self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), request=self.request, payload_data=self.get_rollbar_payload())
                     except Exception as e: # pragma: no cover
                         log.error("Rollbar exception: %s", str(e))
 

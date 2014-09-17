@@ -14,8 +14,11 @@ def tryint(v):
         return v
 
 class Handler(ErrorHandler):
-    def get_payload(self):
-        return {"person": {"name": "joe"}}
+    def get_rollbar_payload(self):
+        return dict(person=dict(name="joe"))
+
+    def get_log_payload(self):
+        return dict(user=10)
 
     def get(self, type):
         if type == 'validation':
@@ -29,16 +32,10 @@ class Handler(ErrorHandler):
     def post(self, arg):
         raise Exception("uncaught")
 
-    def get_current_user(self):
-        class UserExample:
-            def __repr__(self):
-                return 10
-        return UserExample()
-
 
 class NoPayloadHandler(ErrorHandler):
     def get(self):
-        self.finish(self.get_payload())
+        self.finish(self.get_rollbar_payload())
 
 
 class Test(AsyncHTTPTestCase):
