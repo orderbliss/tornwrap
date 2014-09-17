@@ -31,7 +31,8 @@ class Handler(ErrorHandler):
 
     def get_current_user(self):
         class UserExample:
-            id = 10
+            def __repr__(self):
+                return 10
         return UserExample()
 
 
