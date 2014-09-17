@@ -5,6 +5,7 @@ from tornado.web import Application
 from tornado.testing import AsyncHTTPTestCase
 
 from tornwrap import ErrorHandler
+from tornwrap import logger
 
 def tryint(v):
     try:
@@ -36,7 +37,7 @@ class NoPayloadHandler(ErrorHandler):
 
 class Test(AsyncHTTPTestCase):
     def get_app(self):
-        return Application([(r'/no/payload', NoPayloadHandler), (r'/(\w+)', Handler)])
+        return Application([(r'/no/payload', NoPayloadHandler), (r'/(\w+)', Handler)], log_function=logger.handler)
 
     def test_no_payload(self):
         response = self.fetch("/no/payload")

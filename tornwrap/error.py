@@ -1,13 +1,14 @@
 from json import dumps
 from tornado import template
 import traceback as _traceback
-from tornado.log import app_log
 from tornado.web import HTTPError
 from valideer import ValidationError
 from tornado.web import RequestHandler
 from tornado.escape import json_encode
 from valideer.base import get_type_name
 from tornado.web import MissingArgumentError
+
+from .logger import log
 
 try:
     import rollbar
@@ -67,32 +68,35 @@ class ErrorHandler(RequestHandler):
         """
         return {}
 
-    def log(self, _exception_title=None, kwargs={}):
+    def log(self, lvl=None, _exception_title=None, kwargs={}):
+        # 'critical', 'error', 'warning', 'info', 'debug'
+        lvl = (lvl or 'info').lower()
         try:
-            if self.settings.get('rollbar_access_token'):
+            payload = self.get_payload()
+            if lvl in ('critical', 'error') and self.settings.get('rollbar_access_token'):
                 try:
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
-                    self._rollbar_token = rollbar.report_message(_exception_title or "Generic", level='info', 
+                    self._rollbar_token = rollbar.report_message(_exception_title or "Generic", level=lvl,
                                                                  request=self.request,
                                                                  extra_data=kwargs,
-                                                                 payload_data=self.get_payload())
+                                                                 payload_data=payload)
                     kwargs['rollbar'] = self._rollbar_token
                 except Exception as e: # pragma: no cover
-                    app_log.error("Rollbar exception: %s", str(e))
+                    log.error("Rollbar exception: %s", str(e))
 
             try:
-                kwargs['payload'] = self.get_payload()
-                app_log.warning(json_encode(kwargs))
+                kwargs['payload'] = payload
+                getattr(log, lvl)(json_encode(kwargs))
             except Exception as e: # pragma: no cover
-                app_log.warning(str(e))
+                log.warning(str(e))
 
         except Exception as e: # pragma: no cover
-            app_log.error("Error logging traceback: %s", str(e))
+            log.error("Error logging traceback: %s", str(e))
 
     def log_exception(self, typ, value, tb):
         try:
             if typ is MissingArgumentError:
-                self.log("MissingArgumentError", dict(missing=str(value)))
+                self.log("ERROR", "MissingArgumentError", dict(missing=str(value)))
                 self.set_status(400)
                 self.write_error(400, type="MissingArgumentError",
                                  reason="Missing required argument `%s`"%value.arg_name, 
@@ -108,14 +112,14 @@ class ErrorHandler(RequestHandler):
                 if 'is not valid' in value.msg:
                     details['invalid'] = value.context
 
-                self.log("ValidationError", details)
+                self.log("ERROR", "ValidationError", details)
                 self.set_status(400)
                 self.write_error(400, type="ValidationError", 
                                  reason=str(value), details=details, exc_info=(typ, value, tb))
 
             elif typ is AssertionError:
               details = value if type(value) is dict else dict(reason=str(value))
-              self.log("AssertionError", details)
+              self.log("ERROR", "AssertionError", details)
               self.set_status(400)
               self.write_error(400, type="AssertionError", reason=str(value),
                                details=details, exc_info=(typ, value, tb))
@@ -126,12 +130,12 @@ class ErrorHandler(RequestHandler):
                     try:
                         self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), request=self.request, payload_data=self.get_payload())
                     except Exception as e: # pragma: no cover
-                        app_log.error("Rollbar exception: %s", str(e))
+                        log.error("Rollbar exception: %s", str(e))
 
                 super(ErrorHandler, self).log_exception(typ, value, tb)
 
         except Exception as e: # pragma: no cover
-            app_log.error("Error parsing traceback: %s", str(e))
+            log.error("Error parsing traceback: %s", str(e))
             super(ErrorHandler, self).log_exception(typ, value, tb)
 
     def write_error(self, status_code, type=None, reason=None, details=None, exc_info=None, **kwargs):

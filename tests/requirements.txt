@@ -4,3 +4,4 @@ rednose
 nose-cov
 codecov
 rollbar
+logentries

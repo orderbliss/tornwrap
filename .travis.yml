@@ -6,6 +6,7 @@ services:
 env:
   global:
     - secure: "eN+YmeD3YQ8Y5OXjCed+rIDb0IigXd50VDYxECGSpj/vqhCYiMQBl2li39lg\nMCnUyoGc+Ce2twBZ1rohc5Jqu4m3AYb9hPtpGvLUk9i+4agIgcJeAuVZFYi1\nZgXqvtKKTxXf7ViuAGEuc5ImUnHzPRJWJS62BRQciMdimfOBzAc="
+    - secure: "PTPAh8tMAhxLlnD9Aaog9oKplXC1SO+ILnCsikxD80REYpzigDaBJCm35vbD\nv9j2zZgBiKOFz4yfa0/dd3g29H47MBCO3FV5iVeHHTKHc9/+ekRsMDZ36f1C\nxd7Xsc82hJGJvGMzPp5eLIpTFzGu52usR0wleArDgqGp5jtxRC4="
 python:
   - 2.7
   - pypy

@@ -1,12 +1,12 @@
 # tornwrap [![Build Status](https://api.travis-ci.org/stevepeak/tornwrap.svg?branch=master)](http://travis-ci.org/stevepeak/tornwrap) [![codecov.io](https://codecov.io/github/stevepeak/tornwrap/coverage.svg?branch=master)](https://codecov.io/github/stevepeak/tornwrap)
 
-> Collection of commonly used metheods. Feedback and PRs welcome!
+> Collection of commonly used methods and decorators. Feedback and PRs welcome!
 
 ```sh
 pip install tornwrap
 ```
 
-## Projet Contents
+## Project Contents
 
 - [`@authenticated`](#authenticated)
   - via `Basic realm=Restricted`
