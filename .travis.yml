@@ -7,6 +7,8 @@ env:
   global:
     - secure: "eN+YmeD3YQ8Y5OXjCed+rIDb0IigXd50VDYxECGSpj/vqhCYiMQBl2li39lg\nMCnUyoGc+Ce2twBZ1rohc5Jqu4m3AYb9hPtpGvLUk9i+4agIgcJeAuVZFYi1\nZgXqvtKKTxXf7ViuAGEuc5ImUnHzPRJWJS62BRQciMdimfOBzAc="
     - secure: "PTPAh8tMAhxLlnD9Aaog9oKplXC1SO+ILnCsikxD80REYpzigDaBJCm35vbD\nv9j2zZgBiKOFz4yfa0/dd3g29H47MBCO3FV5iVeHHTKHc9/+ekRsMDZ36f1C\nxd7Xsc82hJGJvGMzPp5eLIpTFzGu52usR0wleArDgqGp5jtxRC4="
+    - secure: "MiAuotkGO39U3Jt9WCqXRFpneEslpHZUPu65F5NhxG5mzG9/5Z3ZSGtrnFqC\nAxbukVKUGXzNmjsaV4LROl7kRhOdc5O9++wfa0vQNOcUdXMOdu/7a/BrGyrE\nHJFHcyddlCBvwREtDua9ASZEGZrEqmjWW7n1ANedingPY0tg45k="
+    - secure: "hA3hknzmAp9iieQcOphaFf+QLKanSNnuO+WLvPGECUFVkTz791MO/XFOBkAB\n7zUMbs8jS3oB6ISs0B0+AO7omoXWHFezWaR9WqZSMIZvVzGmxWiRX+KyLYN+\nruuTOK5RaiPfIkbzbTBw4yLV/kvZ2VAMiSitqIfDdWyWvJSvrCA="
 python:
   - 2.7
   - pypy

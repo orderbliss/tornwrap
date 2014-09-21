@@ -10,3 +10,4 @@ eggs
 __pycache__
 htmlcov
 .coverage
+.env
