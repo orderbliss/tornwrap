@@ -6,4 +6,4 @@ from . import logger
 from stripe import Stripe
 from intercom import Intercom
 
-version = VERSION = __version__ = "0.2.0"
+version = VERSION = __version__ = "0.2.1"

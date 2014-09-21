@@ -71,7 +71,7 @@ class ErrorHandler(RequestHandler):
     def get_log_payload(self):
         return {}
 
-    def log(self, lvl=None, _exception_title=None, kwargs={}):
+    def log(self, lvl=None, _exception_title=None, **kwargs):
         # 'critical', 'error', 'warning', 'info', 'debug'
         lvl = (lvl or 'info').lower()
         try:
@@ -97,7 +97,7 @@ class ErrorHandler(RequestHandler):
     def log_exception(self, typ, value, tb):
         try:
             if typ is MissingArgumentError:
-                self.log("ERROR", "MissingArgumentError", dict(missing=str(value)))
+                self.log("ERROR", "MissingArgumentError", missing=str(value))
                 self.set_status(400)
                 self.write_error(400, type="MissingArgumentError",
                                  reason="Missing required argument `%s`"%value.arg_name, 
@@ -113,14 +113,14 @@ class ErrorHandler(RequestHandler):
                 if 'is not valid' in value.msg:
                     details['invalid'] = value.context
 
-                self.log("ERROR", "ValidationError", details)
+                self.log("ERROR", "ValidationError", **details)
                 self.set_status(400)
                 self.write_error(400, type="ValidationError", 
                                  reason=str(value), details=details, exc_info=(typ, value, tb))
 
             elif typ is AssertionError:
               details = value if type(value) is dict else dict(reason=str(value))
-              self.log("ERROR", "AssertionError", details)
+              self.log("ERROR", "AssertionError", **details)
               self.set_status(400)
               self.write_error(400, type="AssertionError", reason=str(value),
                                details=details, exc_info=(typ, value, tb))

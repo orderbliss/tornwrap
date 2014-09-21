@@ -26,7 +26,7 @@ class Stripe(object):
     """
     def __init__(self, api_key=None):
         self.api_key = api_key or os.getenv('STRIPE_API_KEY', None)
-        assert self.api_key, 'strip api_key must be set'
+        assert self.api_key, 'stripe api_key must be set'
         self._endpoints = ['https://%s:@api.stripe.com/v1' % self.api_key]
 
     @accepts(endpoint=endpoints)

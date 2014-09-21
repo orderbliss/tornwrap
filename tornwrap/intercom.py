@@ -20,7 +20,7 @@ class Intercom(object):
     """
     def __init__(self, ignore_error=False, api_key=None):
         self.api_key = api_key or os.getenv('INTERCOM_API_KEY', None)
-        assert self.api_key, 'strip api_key must be set'
+        assert self.api_key, 'intercom api_key must be set'
         self._endpoints = ['https://%s@api.intercom.io/' % self.api_key]
         self._ignore_error = ignore_error
 
