@@ -71,13 +71,22 @@ class Intercom(object):
                                                   headers={'Content-Type':'application/json'},
                                                   method=method,
                                                   body=json_encode(kwargs))
-
-            result = json_decode(response.body)
+            
+            log.info(json_encode(dict(service="intercom", status=response.code, stripe=response.body, url=response.effective_url)))
+            try:
+                result = json_decode(response.body)
+            except ValueError:
+                log.error(json_encode(dict(body=response.code, api=response.effective_url)))
+                result = None
             raise gen.Return(result)
 
         except httpclient.HTTPError as e:
-            body = json_decode(e.response.body)
+            try:
+                body = json_decode(e.response.body)
+            except ValueError:
+                body = e.response.body
             log.error(json_encode(dict(status=e.response.code, body=body, api=e.response.effective_url)))
             if self._ignore_error:
                 raise gen.Return(False)
             raise HTTPError(400, reason=body['errors'][0]['message'])
+

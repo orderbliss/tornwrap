@@ -75,11 +75,12 @@ class Stripe(object):
                                                    method=method,
                                                    body=urlencode(self._nested_dict_to_url(kwargs)))
 
+            log.info(json_encode(dict(service="stripe", status=response.code, stripe=response.body, url=response.effective_url)))
             raise gen.Return(json_decode(response.body))
 
         except httpclient.HTTPError as e:
+            log.info(json_encode(dict(service="stripe", status=response.code, body=e.response.body, url=e.response.effective_url)))
             body = json_decode(e.response.body)
-            log.error(json_encode(dict(status=e.response.code, body=body, api=e.response.effective_url)))
             raise HTTPError(400, reason=body['error']['message'])
 
     def _nested_dict_to_url(self, d):
