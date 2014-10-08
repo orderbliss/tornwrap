@@ -81,5 +81,4 @@ class Intercom(object):
 
         except Exception as e:
             log.error(json_encode(dict(service="intercom", error=str(e))))
-            raise gen.Return((500, None))
-
+            raise gen.Return((500, {'errors': [{'message': 'unknown', 'code': 'unknown'}], 'type': 'error.list'}))

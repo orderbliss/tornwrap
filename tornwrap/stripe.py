@@ -85,7 +85,7 @@ class Stripe(object):
 
         except Exception as e:
             log.info(json_encode(dict(service="stripe", error=str(e))))
-            raise gen.Return((500, None))
+            raise gen.Return((500, {'error': {'message': "unknown", 'code': 'unknown', 'type': 'unknown', 'param': 'n/a'}}))
 
 
     def _nested_dict_to_url(self, d):
