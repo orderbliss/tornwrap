@@ -3,7 +3,6 @@ import valideer
 from tornado import gen
 from valideer import accepts
 from tornado import httpclient
-from tornado.web import HTTPError
 from tornado.escape import json_decode
 from tornado.escape import json_encode
 from tornado.httputil import url_concat
@@ -18,11 +17,10 @@ class Intercom(object):
     """
     http://doc.intercom.io/api/
     """
-    def __init__(self, ignore_error=False, api_key=None):
+    def __init__(self, api_key=None):
         self.api_key = api_key or os.getenv('INTERCOM_API_KEY', None)
         assert self.api_key, 'intercom api_key must be set'
         self._endpoints = ['https://%s@api.intercom.io/' % self.api_key]
-        self._ignore_error = ignore_error
 
     @accepts(endpoint=endpoints)
     def __getattr__(self, endpoint):
@@ -60,33 +58,28 @@ class Intercom(object):
 
         # kwargs = validation.validate(kwargs)
         kwargs = dict([(k, v) for k,v in kwargs.items() if v is not None])
-
         try:
-            if method in ('GET', 'DELETE'):
-                response = yield http_client.fetch(url_concat("/".join(self._endpoints), kwargs), 
-                                                  headers={'Accept':'application/json'},
-                                                  method=method)
-            else:
-                response = yield http_client.fetch("/".join(self._endpoints), 
-                                                  headers={'Content-Type':'application/json'},
-                                                  method=method,
-                                                  body=json_encode(kwargs))
-            
-            log.info(json_encode(dict(service="intercom", status=response.code, stripe=response.body, url=response.effective_url)))
             try:
-                result = json_decode(response.body)
-            except ValueError:
-                log.error(json_encode(dict(body=response.code, api=response.effective_url)))
-                result = None
-            raise gen.Return(result)
+                if method in ('GET', 'DELETE'):
+                    response = yield http_client.fetch(url_concat("/".join(self._endpoints), kwargs), 
+                                                      headers={'Accept':'application/json'},
+                                                      method=method)
+                else:
+                    response = yield http_client.fetch("/".join(self._endpoints), 
+                                                      headers={'Content-Type':'application/json'},
+                                                      method=method, body=json_encode(kwargs))
+                
+                log.info(json_encode(dict(service="intercom", status=response.code, stripe=response.body, url=response.effective_url)))
+                raise gen.Return((response.code, json_decode(response.body)))
 
-        except httpclient.HTTPError as e:
-            try:
-                body = json_decode(e.response.body)
-            except ValueError:
-                body = e.response.body
-            log.error(json_encode(dict(status=e.response.code, body=body, api=e.response.effective_url)))
-            if self._ignore_error:
-                raise gen.Return(False)
-            raise HTTPError(400, reason=body['errors'][0]['message'])
+            except httpclient.HTTPError as e:
+                log.error(json_encode(dict(service="intercom", status=e.response.code, body=e.response.body, url=e.response.effective_url)))
+                raise gen.Return((e.response.code, json_decode(e.response.body)))
+
+        except gen.Return:
+            raise
+
+        except Exception as e:
+            log.error(json_encode(dict(service="intercom", error=str(e))))
+            raise gen.Return((500, None))
 
