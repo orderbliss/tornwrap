@@ -117,7 +117,9 @@ class ErrorHandler(RequestHandler):
                 self.write_error(400, type="AssertionError", reason=str(value), exc_info=(typ, value, tb))
 
             else:
-                logger.traceback(exc_info=(typ, value, tb))
+                if typ is not HTTPError or (typ is HTTPError and value.status_code >= 500):
+                    logger.traceback(exc_info=(typ, value, tb))
+
                 if self.settings.get('rollbar_access_token') and not (typ is HTTPError and value.status_code < 500):
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L218
                     try:
@@ -131,7 +133,6 @@ class ErrorHandler(RequestHandler):
             super(ErrorHandler, self).log_exception(typ, value, tb)
 
     def write_error(self, status_code, type=None, reason=None, details=None, exc_info=None, **kwargs):
-        print "\033[92m....\033[0m", status_code, type, reason, details, exc_info, kwargs
         if exc_info:
             traceback = ''.join(["%s<br>" % line for line in _traceback.format_exception(*exc_info)])
         else:

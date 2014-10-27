@@ -14,6 +14,8 @@ pip install tornwrap
   - limit usage for guests and authenticated users
 - [`@validated`](#validated)
   - using [valideer](https://github.com/podio/valideer) to validate and adapt body and/or url args
+- `wip` `with metrics` and `@metrics`
+  - wrap features or methods to track perormance and metrics
 - *future* [`@cached`](#cached)
   - cache requests, ex page builds
 - *future* [`@gist`](#gist)
