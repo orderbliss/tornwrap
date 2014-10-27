@@ -1,7 +1,9 @@
 import os
+import sys
 import logging
 from json import dumps
 from tornado.log import access_log
+from traceback import format_exception
 from tornado.web import RedirectHandler
 from tornado.web import StaticFileHandler
 
@@ -13,6 +15,13 @@ if os.getenv('LOGENTRIES_TOKEN'):
     log.setLevel(getattr(logging, os.getenv('LOGLVL', "INFO")))
     log.addHandler(LogentriesHandler(os.getenv('LOGENTRIES_TOKEN')))
 
+def traceback(exc_info=None, **kwargs):
+    # raise_exc_info(exc_info=(type, value, traceback))
+    if not exc_info:
+        exc_info = sys.exc_info()
+    kwargs['traceback'] = format_exception(*exc_info)
+    log.error(dumps(kwargs))
+    log.debug("\n".join(kwargs['traceback']))
 
 def handler(handler):
     if isinstance(handler, (StaticFileHandler, RedirectHandler)):

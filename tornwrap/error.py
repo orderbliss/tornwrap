@@ -8,7 +8,7 @@ from tornado.escape import json_encode
 from valideer.base import get_type_name
 from tornado.web import MissingArgumentError
 
-from .logger import log
+from . import logger
 
 try:
     import rollbar
@@ -71,10 +71,13 @@ class ErrorHandler(RequestHandler):
     def get_log_payload(self):
         return {}
 
-    def log(self, lvl=None, _exception_title=None, **kwargs):
-        # 'critical', 'error', 'warning', 'info', 'debug'
+    def log(self, lvl=None, _exception_title=None, exc_info=None, **kwargs):
+        # critical, error, warning, info, debug
         lvl = (lvl or 'info').lower()
         try:
+            if exc_info:
+                logger.traceback(exc_info=exc_info)
+
             if lvl in ('critical', 'error') and self.settings.get('rollbar_access_token'):
                 try:
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
@@ -83,25 +86,19 @@ class ErrorHandler(RequestHandler):
                                                                  extra_data=kwargs,
                                                                  payload_data=self.get_rollbar_payload())
                     kwargs['rollbar'] = self._rollbar_token
-                except Exception as e: # pragma: no cover
-                    log.error("Rollbar exception: %s", str(e))
+                except: # pragma: no cover
+                    logger.traceback()
 
-            try:
-                getattr(log, lvl)(json_encode(kwargs))
-            except Exception as e: # pragma: no cover
-                log.warning(str(e))
+            getattr(logger.log, lvl)(json_encode(kwargs))
 
-        except Exception as e: # pragma: no cover
-            log.error("Error logging traceback: %s", str(e))
+        except: # pragma: no cover
+            logger.traceback()
 
     def log_exception(self, typ, value, tb):
         try:
             if typ is MissingArgumentError:
-                self.log("ERROR", "MissingArgumentError", missing=str(value))
-                self.set_status(400)
-                self.write_error(400, type="MissingArgumentError",
-                                 reason="Missing required argument `%s`"%value.arg_name, 
-                                 exc_info=(typ, value, tb))
+                self.log("warning", "MissingArgumentError", missing=str(value))
+                self.write_error(400, type="MissingArgumentError", reason="Missing required argument `%s`"%value.arg_name, exc_info=(typ, value, tb))
 
             elif typ is ValidationError:
                 details = dict(context=value.context,
@@ -113,34 +110,28 @@ class ErrorHandler(RequestHandler):
                 if 'is not valid' in value.msg:
                     details['invalid'] = value.context
 
-                self.log("ERROR", "ValidationError", **details)
-                self.set_status(400)
-                self.write_error(400, type="ValidationError", 
-                                 reason=str(value), details=details, exc_info=(typ, value, tb))
+                self.log('warning', "ValidationError", **details)
+                self.write_error(400, type="ValidationError", reason=str(value), details=details, exc_info=(typ, value, tb))
 
             elif typ is AssertionError:
-              details = value if type(value) is dict else dict(reason=str(value))
-              self.log("ERROR", "AssertionError", **details)
-              self.set_status(400)
-              self.write_error(400, type="AssertionError", reason=str(value),
-                               details=details, exc_info=(typ, value, tb))
+                self.write_error(400, type="AssertionError", reason=str(value), exc_info=(typ, value, tb))
 
             else:
+                logger.traceback(exc_info=(typ, value, tb))
                 if self.settings.get('rollbar_access_token') and not (typ is HTTPError and value.status_code < 500):
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L218
                     try:
                         self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), request=self.request, payload_data=self.get_rollbar_payload())
                     except Exception as e: # pragma: no cover
-                        log.error("Rollbar exception: %s", str(e))
+                        logger.log.error("Rollbar exception: %s", str(e))
 
                 super(ErrorHandler, self).log_exception(typ, value, tb)
 
-        except Exception as e: # pragma: no cover
-            log.error("Error parsing traceback: %s", str(e))
+        except: # pragma: no cover
             super(ErrorHandler, self).log_exception(typ, value, tb)
 
     def write_error(self, status_code, type=None, reason=None, details=None, exc_info=None, **kwargs):
-        # IDEA: create a temp location of traceback? ex /traceback/5543
+        print "\033[92m....\033[0m", status_code, type, reason, details, exc_info, kwargs
         if exc_info:
             traceback = ''.join(["%s<br>" % line for line in _traceback.format_exception(*exc_info)])
         else:
@@ -158,6 +149,7 @@ class ErrorHandler(RequestHandler):
                     traceback=traceback, 
                     request=dumps(self.request.__dict__, indent=2, default=lambda a: str(a)))
 
+        self.set_status(status_code)
         if self.settings.get('error_template'):
             self.render(self.settings.get('error_template'), **args)
         else:
