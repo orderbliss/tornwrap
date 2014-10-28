@@ -14,8 +14,8 @@ pip install tornwrap
   - limit usage for guests and authenticated users
 - [`@validated`](#validated)
   - using [valideer](https://github.com/podio/valideer) to validate and adapt body and/or url args
-- `wip` `with metrics` and `@metrics`
-  - wrap features or methods to track perormance and metrics
+- *wip* [`@metrics.handler`](#metrics.handler) and [`with metrics.new`](#withmetrics.new)
+  - wrap features and handlers to track performance and metrics
 - *future* [`@cached`](#cached)
   - cache requests, ex page builds
 - *future* [`@gist`](#gist)
@@ -82,6 +82,50 @@ class Handler(RequestHandler):
     def post(self, body):
         # can validate body (json or urlencoded)
         self.finish("Hello, %s!" % body['name'])
+
+```
+
+# `@metrics.handler` **wip**
+```python
+from tornwrap import metrics
+
+class Handler(RequestHandler):
+    @metrics.handler("pagename")
+    def get(self, metric):
+        # get from database
+        metric.speed.time("get")
+        # save to database
+        metric.speed.time("save")
+
+
+>>> [{"name": "speed", "source": "get",  "value": 2}, 
+     {"name": "speed", "source": "save", "value": 1}, 
+     {"name": "views", "source": "200",  "value": 1},
+     {"name": "views": "source": "user", "value": 1}]
+
+```
+
+# `with metrics.new` **wip**
+> Collect metrics on the product speed and feature usage. Metrics are logged and (optionally) sent to [Librato Metrics](https://librato.com/)
+
+```python
+from tornwrap import metrics
+
+with metrics.new("feature_name") as metric:
+    try:
+        # make a long http request
+        metric.speed.time("download")
+        # save it to the database
+        metric.speed.time("save")
+    except:
+        metric.count.incr("fail")
+    else:
+        metric.count.incr("success")
+
+print metric.results
+>>> [{"name": "speed", "source": "download", "value": 4321}, 
+     {"name": "speed", "source": "save",     "value": 1235}, 
+     {"name": "count", "source": "success",  "value": 1}]
 
 ```
 
