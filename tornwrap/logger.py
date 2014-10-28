@@ -7,6 +7,13 @@ from traceback import format_exception
 from tornado.web import RedirectHandler
 from tornado.web import StaticFileHandler
 
+DEBUG = (os.getenv('DEBUG') == 'TRUE')
+if DEBUG:
+    from pygments import highlight
+    from pygments.lexers import PythonLexer
+    from pygments.formatters import TerminalFormatter
+    lexer, formatter = PythonLexer(), TerminalFormatter()
+
 log = access_log
 
 if os.getenv('LOGENTRIES_TOKEN'):
@@ -16,12 +23,12 @@ if os.getenv('LOGENTRIES_TOKEN'):
     log.addHandler(LogentriesHandler(os.getenv('LOGENTRIES_TOKEN')))
 
 def traceback(exc_info=None, **kwargs):
-    # raise_exc_info(exc_info=(type, value, traceback))
     if not exc_info:
         exc_info = sys.exc_info()
     kwargs['traceback'] = format_exception(*exc_info)
     log.error(dumps(kwargs))
-    log.debug("\n".join(kwargs['traceback']))
+    if DEBUG:
+        sys.stdout.write(highlight("\n".join(kwargs['traceback']), lexer, formatter))
 
 def handler(handler):
     if isinstance(handler, (StaticFileHandler, RedirectHandler)):
