@@ -27,7 +27,7 @@ pip install tornwrap
 
 # `@authenticated`
 
-```py
+```python
 from tornwrap import authenticated
 
 class Handler(RequestHandler):
@@ -46,7 +46,7 @@ class Handler(RequestHandler):
 # `@ratelimited`
 > Requires `redis`
 
-```py
+```python
 from tornwrap import ratelimited
 
 class Handler(RequestHandler):
@@ -69,7 +69,7 @@ class Handler(RequestHandler):
 # `@validated`
 > Uses [valideer](https://github.com/podio/valideer)
 
-```py
+```python
 from tornwrap import validated
 
 class Handler(RequestHandler):

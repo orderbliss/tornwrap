@@ -5,3 +5,4 @@ nose-cov
 codecov
 rollbar
 logentries
+pygments
