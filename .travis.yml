@@ -9,6 +9,8 @@ env:
     - secure: "PTPAh8tMAhxLlnD9Aaog9oKplXC1SO+ILnCsikxD80REYpzigDaBJCm35vbD\nv9j2zZgBiKOFz4yfa0/dd3g29H47MBCO3FV5iVeHHTKHc9/+ekRsMDZ36f1C\nxd7Xsc82hJGJvGMzPp5eLIpTFzGu52usR0wleArDgqGp5jtxRC4="
     - secure: "MiAuotkGO39U3Jt9WCqXRFpneEslpHZUPu65F5NhxG5mzG9/5Z3ZSGtrnFqC\nAxbukVKUGXzNmjsaV4LROl7kRhOdc5O9++wfa0vQNOcUdXMOdu/7a/BrGyrE\nHJFHcyddlCBvwREtDua9ASZEGZrEqmjWW7n1ANedingPY0tg45k="
     - secure: "hA3hknzmAp9iieQcOphaFf+QLKanSNnuO+WLvPGECUFVkTz791MO/XFOBkAB\n7zUMbs8jS3oB6ISs0B0+AO7omoXWHFezWaR9WqZSMIZvVzGmxWiRX+KyLYN+\nruuTOK5RaiPfIkbzbTBw4yLV/kvZ2VAMiSitqIfDdWyWvJSvrCA="
+    - secure: "ZqPn8U5pOF1zvTdrgKACM1IGyO2x4gaUopFhcWhX8P0Xswk34dV1g50m8xHR\nS8anDUxmSsWxpD6CviJJkyHOTZzdwAlOCmR5+pCX8fHa7JkEDFjHapCIYsvg\nYmzVV2cae4eTU8Faw2B6PV9qJykQQHMm/JdVgsjeMc7+hd6JcMw="
+    - secure: "f/eODSkwYRlMwrLkPSipDevXi6nD1m3qYlOj9XL7yyi+EhUEzENB8ypgi9ca\nN9w+vFmKr12kjbMdcm/f1UCYCGyLq2UR9sq699e3zGRL8Xz3quLIP1I7VG5K\nk+FWysQ783PhnSaa71Gx0cU9oO/JS1X+X3zsyhtizGaY/f4dACM="
 python:
   - 2.7
   - pypy

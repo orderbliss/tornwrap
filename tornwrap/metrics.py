@@ -1,9 +1,13 @@
 import os
 from time import time
+from json import dumps
 
-# LIBRATO = os.getenv('LIBRATO_USER'), os.getenv('LIBRATO_TOKEN')
-# if LIBRATO != (None, None):
-#     import librato
+from .logger import log
+
+LIBRATO_USER = os.getenv('LIBRATO_USER')
+LIBRATO_TOKEN = os.getenv('LIBRATO_TOKEN')
+if (LIBRATO_USER, LIBRATO_TOKEN) != (None, None):
+    import librato
 
 
 class new(object):
@@ -12,17 +16,21 @@ class new(object):
         self._groups = {}
 
     def _to_logs(self):
-        pass
+        [[log.info(dumps(dict(time=metric.now, 
+                              source=metric.source, 
+                              metric=".".join((self.name, group_name)), 
+                              value=metric.value))) \
+          for metric in group._metrics.values()] for group_name, group in self._groups.items()]
 
     def _to_librato(self):
-        if False: # wip
-            api = librato.connect(*LIBRATO)
+        if LIBRATO_USER and LIBRATO_TOKEN:
+            api = librato.connect(LIBRATO_USER, LIBRATO_TOKEN)
             queue = api.new_queue()
-            for group in self:
-                for metric in group:
-                    queue.add(".".join((self.name, metric.group)), 
-                              metric.value, 
-                              source=metric.source, 
+            for group_name, group in self._groups.items():
+                for metric in group._metrics.values():
+                    queue.add(".".join((self.name, group_name)), 
+                              metric.value,
+                              source=metric.source,
                               measure_time=metric.now)
             queue.submit()
 
@@ -41,9 +49,6 @@ class new(object):
         return self._groups.get(name) \
                or self._groups.setdefault(name, _group(name))
 
-    def __iter__(self):
-        return self._groups.values()
-
 
 class _group(object):
     def __init__(self, name):
@@ -54,9 +59,6 @@ class _group(object):
     def __getattr__(self, source):
         return self._metrics[source].value
    
-    def __iter__(self):
-        return self._metrics.values()
-
     def time(self, source):
         now = time()
         self._metrics[source] = _metric(source, (now-self.now)*1000, now)
@@ -65,15 +67,11 @@ class _group(object):
     def incr(self, source, by=1):
         return (self._metrics.get(source) or self._metrics.setdefault(source, _metric(source))).incr(by)
 
-    # def append(self, source, value):
-    #     (self._metrics.get(source) or self._metrics.setdefault(source, _metric(source))).append(value)
-
-
 class _metric(object):
     def __init__(self, source, value=0, now=None):
         self.source = source
         self.value = value
-        self.now = now or time()
+        self.now = int(now or time())
 
     def incr(self, by):
         self.value = self.value + by

@@ -6,3 +6,4 @@ codecov
 rollbar
 logentries
 pygments
+librato-metrics
