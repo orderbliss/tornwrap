@@ -2,7 +2,7 @@ import os
 from time import time
 from json import dumps
 
-from .logger import log
+from . import logger
 
 LIBRATO_USER = os.getenv('LIBRATO_USER')
 LIBRATO_TOKEN = os.getenv('LIBRATO_TOKEN')
@@ -16,7 +16,7 @@ class new(object):
         self._groups = {}
 
     def _to_logs(self):
-        [[log.info(dumps(dict(time=metric.now, 
+        [[logger.log.info(dumps(dict(time=metric.now, 
                               source=metric.source, 
                               metric=".".join((self.name, group_name)), 
                               value=metric.value))) \
@@ -24,15 +24,18 @@ class new(object):
 
     def _to_librato(self):
         if LIBRATO_USER and LIBRATO_TOKEN:
-            api = librato.connect(LIBRATO_USER, LIBRATO_TOKEN)
-            queue = api.new_queue()
-            for group_name, group in self._groups.items():
-                for metric in group._metrics.values():
-                    queue.add(".".join((self.name, group_name)), 
-                              metric.value,
-                              source=metric.source,
-                              measure_time=metric.now)
-            queue.submit()
+            try:
+                api = librato.connect(LIBRATO_USER, LIBRATO_TOKEN)
+                queue = api.new_queue()
+                for group_name, group in self._groups.items():
+                    for metric in group._metrics.values():
+                        queue.add(".".join((self.name, group_name)), 
+                                  metric.value,
+                                  source=metric.source,
+                                  measure_time=metric.now)
+                queue.submit()
+            except:
+                logger.traceback()
 
     def submit(self):
         self._to_logs()
