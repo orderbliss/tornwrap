@@ -14,6 +14,7 @@ class new(object):
     def __init__(self, name):
         self.name = name
         self._groups = {}
+        self.start_time = time()
 
     def _to_logs(self):
         [[logger.log.info(dumps(dict(time=metric.now, 
@@ -41,6 +42,13 @@ class new(object):
         self._to_logs()
         self._to_librato()
 
+    def __repr__(self):
+        return dumps([[dict(time=metric.now, 
+                            source=metric.source, 
+                            metric=".".join((self.name, group_name)), 
+                            value=metric.value) \
+          for metric in group._metrics.values()] for group_name, group in self._groups.items()], indent=2, sort_keys=True)
+
     def __enter__(self):
         self.time = time()
         return self
@@ -50,22 +58,22 @@ class new(object):
 
     def __getattr__(self, name):
         return self._groups.get(name) \
-               or self._groups.setdefault(name, _group(name))
+               or self._groups.setdefault(name, _group(name, self.start_time))
 
 
 class _group(object):
-    def __init__(self, name):
+    def __init__(self, name, start_time):
         self.name = name
         self._metrics = {}
-        self.now = time()
+        self.start_time = start_time
 
     def __getattr__(self, source):
         return self._metrics[source].value
    
     def time(self, source):
         now = time()
-        self._metrics[source] = _metric(source, (now-self.now)*1000, now)
-        self.now = now
+        self._metrics[source] = _metric(source, int((now-self.start_time)*1000), now)
+        self.start_time = now
 
     def incr(self, source, by=1):
         return (self._metrics.get(source) or self._metrics.setdefault(source, _metric(source))).incr(by)

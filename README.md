@@ -24,7 +24,6 @@ pip install tornwrap
   - generate html pages from a Github repo containing markdown
 
 
-
 # `@authenticated`
 
 ```python
@@ -96,7 +95,8 @@ class Handler(RequestHandler):
         metric.speed.time("get")
         # save to database
         metric.speed.time("save")
-
+        
+        print metric
 
 >>> [{"name": "speed", "source": "get",  "value": 2}, 
      {"name": "speed", "source": "save", "value": 1}, 
@@ -122,7 +122,7 @@ with metrics.new("feature_name") as metric:
     else:
         metric.count.incr("success")
 
-print metric.results
+print metric
 >>> [{"name": "speed", "source": "download", "value": 4321}, 
      {"name": "speed", "source": "save",     "value": 1235}, 
      {"name": "count", "source": "success",  "value": 1}]
