@@ -94,6 +94,9 @@ class ErrorHandler(RequestHandler):
         except: # pragma: no cover
             logger.traceback()
 
+    def traceback(self, **kwargs):
+        logger.traceback(**kwargs)
+
     def log_exception(self, typ, value, tb):
         try:
             if typ is MissingArgumentError:
