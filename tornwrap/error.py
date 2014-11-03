@@ -4,7 +4,6 @@ import traceback as _traceback
 from tornado.web import HTTPError
 from valideer import ValidationError
 from tornado.web import RequestHandler
-from tornado.escape import json_encode
 from valideer.base import get_type_name
 from tornado.web import MissingArgumentError
 
@@ -14,7 +13,9 @@ try:
     import rollbar
 except ImportError: # pragma: no cover
     rollbar = None
-    
+
+
+
 
 TEMPLATE = template.Template("""
 <html>
@@ -89,7 +90,7 @@ class ErrorHandler(RequestHandler):
                 except: # pragma: no cover
                     logger.traceback()
 
-            getattr(logger.log, lvl)(json_encode(kwargs))
+            getattr(logger.log, lvl)(dumps(kwargs, default=logger.json_defaults))
 
         except: # pragma: no cover
             logger.traceback()

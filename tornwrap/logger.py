@@ -2,6 +2,8 @@ import os
 import sys
 import logging
 from json import dumps
+from decimal import Decimal
+from datetime import datetime
 from tornado.log import access_log
 from traceback import format_exception
 from tornado.web import RedirectHandler
@@ -22,13 +24,24 @@ if os.getenv('LOGENTRIES_TOKEN'):
     log.setLevel(getattr(logging, os.getenv('LOGLVL', "INFO")))
     log.addHandler(LogentriesHandler(os.getenv('LOGENTRIES_TOKEN')))
 
+
+def json_defaults(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, datetime):
+        return str(obj)
+    else:
+        return repr(obj)
+    
+
 def traceback(exc_info=None, **kwargs):
     if not exc_info:
         exc_info = sys.exc_info()
     kwargs['traceback'] = format_exception(*exc_info)
-    log.error(dumps(kwargs))
+    log.error(dumps(kwargs, default=json_defaults))
     if DEBUG:
         sys.stdout.write(highlight("\n".join(kwargs['traceback']), lexer, formatter))
+
 
 def handler(handler):
     if isinstance(handler, (StaticFileHandler, RedirectHandler)):
