@@ -4,6 +4,8 @@ from json import dumps
 
 from . import logger
 
+LOG_METRICS = os.getenv('LOG_METRICS', 'TRUE').upper()=='TRUE'
+
 LIBRATO_USER = os.getenv('LIBRATO_USER')
 LIBRATO_TOKEN = os.getenv('LIBRATO_TOKEN')
 if (LIBRATO_USER, LIBRATO_TOKEN) != (None, None):
@@ -17,11 +19,12 @@ class new(object):
         self.start_time = time()
 
     def _to_logs(self):
-        [[logger.log.info(dumps(dict(time=metric.now, 
-                              source=metric.source, 
-                              metric=".".join((self.name, group_name)), 
-                              value=metric.value))) \
-          for metric in group._metrics.values()] for group_name, group in self._groups.items()]
+        if LOG_METRICS:
+            [[logger.log.info(dumps(dict(time=metric.now, 
+                                  source=metric.source, 
+                                  metric=".".join((self.name, group_name)), 
+                                  value=metric.value))) \
+              for metric in group._metrics.values()] for group_name, group in self._groups.items()]
 
     def _to_librato(self):
         if LIBRATO_USER and LIBRATO_TOKEN:
@@ -30,10 +33,11 @@ class new(object):
                 queue = api.new_queue()
                 for group_name, group in self._groups.items():
                     for metric in group._metrics.values():
-                        queue.add(".".join((self.name, group_name)), 
-                                  metric.value,
-                                  source=metric.source,
-                                  measure_time=metric.now)
+                        if metric.value is not None:
+                            queue.add(".".join((self.name, group_name)), 
+                                      metric.value,
+                                      source=metric.source,
+                                      measure_time=metric.now)
                 queue.submit()
             except:
                 logger.traceback()
