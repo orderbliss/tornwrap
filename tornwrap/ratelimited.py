@@ -15,11 +15,6 @@ def ratelimited(user=None, guest=None, format="tornrate:%s"):
     Status: 403 Forbidden
 
     """
-    try:
-        import redis
-    except ImportError: # pragma: no cover
-        raise ImportError("redis is required to use torndown.ratelimtied")
-
     if user:
         assert type(user[0]) is int and user[0] > 0, "user[0] must be int and > 0"
         assert type(user[1]) is int and user[1] > 0, "user[1] must be int and > 0"
@@ -55,7 +50,7 @@ def ratelimited(user=None, guest=None, format="tornrate:%s"):
                 self.redis.setex(key, tokens-1, refresh)
                 remaining, ttl = tokens-1, refresh
             else:
-                remaining, ttl = int(self.redis.decr(key)), int(self.redis.ttl(key))
+                remaining, ttl = int(self.redis.decr(key) or 0), int(self.redis.ttl(key) or 0)
 
             # set headers
             self.set_header("X-RateLimit-Limit", tokens)
