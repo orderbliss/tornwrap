@@ -8,6 +8,7 @@ from tornado.escape import json_encode
 from tornado.httputil import url_concat
 
 from .logger import log
+from .logger import traceback
 
 endpoints = valideer.Enum(('users', 'companies', 'admins', 'tags', 
                            'segments', 'notes', 'events', 'counts', 'conversations'))
@@ -69,16 +70,16 @@ class Intercom(object):
                                                       headers={'Content-Type':'application/json'},
                                                       method=method, body=json_encode(kwargs))
                 
-                log.info(json_encode(dict(service="intercom", status=response.code, stripe=response.body, url=response.effective_url)))
+                log(service="intercom", status=response.code, stripe=response.body, url=response.effective_url)
                 raise gen.Return((response.code, json_decode(response.body)))
 
             except httpclient.HTTPError as e:
-                log.error(json_encode(dict(service="intercom", status=e.response.code, body=e.response.body, url=e.response.effective_url)))
+                log(service="intercom", status=e.response.code, body=e.response.body, url=e.response.effective_url)
                 raise gen.Return((e.response.code, json_decode(e.response.body)))
 
         except gen.Return:
             raise
 
         except Exception as e:
-            log.error(json_encode(dict(service="intercom", error=str(e))))
+            traceback(service="intercom")
             raise gen.Return((500, {'errors': [{'message': 'unknown', 'code': 'unknown'}], 'type': 'error.list'}))

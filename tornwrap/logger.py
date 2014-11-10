@@ -4,7 +4,6 @@ import logging
 from json import dumps
 from decimal import Decimal
 from datetime import datetime
-from tornado.log import access_log
 from traceback import format_exception
 from tornado.web import RedirectHandler
 from tornado.web import StaticFileHandler
@@ -16,13 +15,19 @@ if DEBUG:
     from pygments.formatters import TerminalFormatter
     lexer, formatter = PythonLexer(), TerminalFormatter()
 
-log = access_log
+_log = logging.getLogger()
+
 
 if os.getenv('LOGENTRIES_TOKEN'):
     from logentries import LogentriesHandler
-    log = logging.getLogger('logentries')
-    log.setLevel(getattr(logging, os.getenv('LOGLVL', "INFO")))
-    log.addHandler(LogentriesHandler(os.getenv('LOGENTRIES_TOKEN')))
+    _log = logging.getLogger('logentries')
+    _log.setLevel(getattr(logging, os.getenv('LOGLVL', "INFO")))
+    _log.addHandler(LogentriesHandler(os.getenv('LOGENTRIES_TOKEN')))
+
+else:
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    _log.addHandler(ch)
 
 
 def json_defaults(obj):
@@ -34,43 +39,61 @@ def json_defaults(obj):
         return repr(obj)
     
 
-def traceback(exc_info=None, **kwargs):
+def traceback(exc_info=None, *args, **kwargs):
     if not exc_info:
         exc_info = sys.exc_info()
-    kwargs['traceback'] = format_exception(*exc_info)
-    log.error(dumps(kwargs, default=json_defaults))
+    d = dict()
+    [d.update(a) for a in args]
+    d.update(kwargs)
+    d['traceback'] = format_exception(*exc_info)
+    _log.error(dumps(d, default=json_defaults))
     if DEBUG:
-        sys.stdout.write(highlight("\n".join(kwargs['traceback']), lexer, formatter))
+        sys.stdout.write(highlight("\n".join(d['traceback']), lexer, formatter))
 
+
+def log(*args, **kwargs):
+    d = dict()
+    [d.update(a) for a in args]
+    d.update(kwargs)
+    _log.info(dumps(d, default=json_defaults))
+
+
+def debug(*args, **kwargs):
+    d = dict()
+    [d.update(a) for a in args]
+    d.update(kwargs)
+    _log.debug(dumps(d, default=json_defaults))
+
+setLevel = _log.setLevel
 
 def handler(handler):
     if isinstance(handler, (StaticFileHandler, RedirectHandler)):
         return
 
     # Build log json
-    _log = {"status":    handler.get_status(),
-            "method":    handler.request.method,
-            "uri":       handler.request.uri,
-            "reason":    handler._reason,
-            "ms":        "%.0f" % (1000.0 * handler.request.request_time())}
+    _basics = {"status":    handler.get_status(),
+               "method":    handler.request.method,
+               "uri":       handler.request.uri,
+               "reason":    handler._reason,
+               "ms":        "%.0f" % (1000.0 * handler.request.request_time())}
 
     if hasattr(handler, '_rollbar_token'):
-        _log["rollbar"] = handler._rollbar_token
+        _basics["rollbar"] = handler._rollbar_token
     if hasattr(handler, 'get_log_payload'):
-        _log.update(handler.get_log_payload() or {})
+        _basics.update(handler.get_log_payload() or {})
 
     add = ""
     if (os.getenv('DEBUG') == 'TRUE'):
-        if _log['status'] >= 500:
-            add = "\033[91m%(method)s %(status)s\033[0m " % _log
-        elif _log['status'] >= 400:
-            add = "\033[93m%(method)s %(status)s\033[0m " % _log
+        if _basics['status'] >= 500:
+            add = "\033[91m%(method)s %(status)s\033[0m " % _basics
+        elif _basics['status'] >= 400:
+            add = "\033[93m%(method)s %(status)s\033[0m " % _basics
         else:
-            add = "\033[92m%(method)s %(status)s\033[0m " % _log
+            add = "\033[92m%(method)s %(status)s\033[0m " % _basics
         
-    if _log['status'] > 499:
-        log.fatal("%s%s"%(add, dumps(_log)))
-    elif _log['status'] > 399:
-        log.warn("%s%s"%(add, dumps(_log)))
+    if _basics['status'] > 499:
+        _log.fatal("%s%s"%(add, dumps(_basics)))
+    elif _basics['status'] > 399:
+        _log.warn("%s%s"%(add, dumps(_basics)))
     else:
-        log.info("%s%s"%(add, dumps(_log)))
+        _log.info("%s%s"%(add, dumps(_basics)))

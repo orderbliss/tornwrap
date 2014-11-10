@@ -9,6 +9,7 @@ from tornado.escape import json_encode
 from tornado.httputil import url_concat
 
 from .logger import log
+from .logger import traceback
 
 endpoints = valideer.Enum(('charges', 'customers', 'cards', 
                            'subscription', 'plans', 'coupons', 
@@ -73,18 +74,18 @@ class Stripe(object):
                     response = yield http_client.fetch("/".join(self._endpoints), 
                                                        method=method, body=urlencode(self._nested_dict_to_url(kwargs)))
 
-                log.info(json_encode(dict(service="stripe", status=response.code, stripe=response.body, url=response.effective_url)))
+                log(service="stripe", status=response.code, stripe=response.body, url=response.effective_url)
                 raise gen.Return((response.code, json_decode(response.body)))
 
             except httpclient.HTTPError as e:
-                log.info(json_encode(dict(service="stripe", status=e.response.code, body=e.response.body, url=e.response.effective_url)))
+                log(service="stripe", status=e.response.code, body=e.response.body, url=e.response.effective_url)
                 raise gen.Return((e.response.code, json_decode(e.response.body)))
 
         except gen.Return:
             raise
 
         except Exception as e:
-            log.info(json_encode(dict(service="stripe", error=str(e))))
+            traceback(service="stripe")
             raise gen.Return((500, {'error': {'message': "unknown", 'code': 'unknown', 'type': 'unknown', 'param': 'n/a'}}))
 
 

@@ -20,10 +20,10 @@ class new(object):
 
     def _to_logs(self):
         if LOG_METRICS:
-            [[logger.log.info(dumps(dict(time=metric.now, 
-                                  source=metric.source, 
-                                  metric=".".join((self.name, group_name)), 
-                                  value=metric.value))) \
+            [[logger.log(dict(time=metric.now, 
+                              source=metric.source, 
+                              metric=".".join((self.name, group_name)), 
+                              value=metric.value)) \
               for metric in group._metrics.values()] for group_name, group in self._groups.items()]
 
     def _to_librato(self):
