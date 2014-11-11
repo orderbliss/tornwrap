@@ -38,7 +38,11 @@ class new(object):
                                       metric.value,
                                       source=metric.source,
                                       measure_time=metric.now)
-                queue.submit()
+                try:
+                    queue.submit()
+                except:
+                    pass
+
             except:
                 logger.traceback()
 
