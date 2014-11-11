@@ -48,6 +48,7 @@ class HandlerNoCallback(RequestHandler):
 class TestRateLimit(AsyncHTTPTestCase):
     def get_app(self):
         r = redis.Redis()
+        r.flushall()
         return Application([('/', Handler, dict(redis=r)),
                             ('/no-callback', HandlerNoCallback, dict(redis=r))])
 

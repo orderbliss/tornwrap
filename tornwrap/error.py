@@ -15,8 +15,6 @@ except ImportError: # pragma: no cover
     rollbar = None
 
 
-
-
 TEMPLATE = template.Template("""
 <html>
 <title>Error</title>
@@ -72,25 +70,26 @@ class ErrorHandler(RequestHandler):
     def get_log_payload(self):
         return {}
 
-    def log(self, lvl=None, _exception_title=None, exc_info=None, **kwargs):
+    def log(self, _exception_title=None, exc_info=None, **kwargs):
         # critical, error, warning, info, debug
-        lvl = (lvl or 'info').lower()
         try:
             if exc_info:
-                logger.traceback(exc_info=exc_info)
+                if type(exc_info) is not True:
+                    logger.traceback(exc_info=exc_info)
 
-            if lvl in ('critical', 'error') and self.settings.get('rollbar_access_token'):
-                try:
-                    # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
-                    self._rollbar_token = rollbar.report_message(_exception_title or "Generic", level=lvl,
-                                                                 request=self.request,
-                                                                 extra_data=kwargs,
-                                                                 payload_data=self.get_rollbar_payload())
-                    kwargs['rollbar'] = self._rollbar_token
-                except: # pragma: no cover
-                    logger.traceback()
+                if self.settings.get('rollbar_access_token'):
+                    try:
+                        # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
+                        self._rollbar_token = rollbar.report_message(_exception_title or "Generic",
+                                                                     request=self.request,
+                                                                     extra_data=kwargs,
+                                                                     exc_info=exc_info,
+                                                                     payload_data=self.get_rollbar_payload())
+                        kwargs['rollbar'] = self._rollbar_token
+                    except: # pragma: no cover
+                        logger.traceback()
 
-            getattr(logger.log, lvl)(dumps(kwargs, default=logger.json_defaults))
+            logger.log(kwargs)
 
         except: # pragma: no cover
             logger.traceback()
