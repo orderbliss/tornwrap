@@ -38,19 +38,19 @@ def ratelimited(user=None, guest=None, format="tornrate:%s"):
             # Get IP Address
             # --------------
             # http://www.tornadoweb.org/en/stable/httputil.html?highlight=remote_ip#tornado.httputil.HTTPServerRequest.remote_ip
-            remote_ip = self.request.remote_ip
             mktime = int(time.mktime(time.localtime()))
-            key = format % remote_ip
+            key = format % self.request.remote_ip
 
             # ----------------
             # Check Rate Limit
             # ----------------
-            current = self.redis.get(key)
+            r = self.redis
+            current = r.get(key)
             if current is None:
-                self.redis.setex(key, tokens-1, refresh)
+                r.setex(key, tokens-1, refresh)
                 remaining, ttl = tokens-1, refresh
             else:
-                remaining, ttl = int(self.redis.decr(key) or 0), int(self.redis.ttl(key) or 0)
+                remaining, ttl = int(r.decr(key) or 0), int(r.ttl(key) or 0)
 
             # set headers
             self.set_header("X-RateLimit-Limit", tokens)

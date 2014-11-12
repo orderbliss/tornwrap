@@ -46,15 +46,10 @@ class HandlerNoCallback(RequestHandler):
 
 
 class TestRateLimit(AsyncHTTPTestCase):
+    redis = redis.Redis()
     def get_app(self):
-        r = redis.Redis()
-        r.flushall()
-        return Application([('/', Handler, dict(redis=r)),
-                            ('/no-callback', HandlerNoCallback, dict(redis=r))])
-
-    def setUp(self):
-        redis.Redis().flushall()
-        super(TestRateLimit, self).setUp()
+        return Application([('/', Handler, dict(redis=self.redis)),
+                            ('/no-callback', HandlerNoCallback, dict(redis=self.redis))])
 
     def test_ratelimit_1(self):
         self.ratelimit(5, method="GET")
@@ -77,6 +72,7 @@ class TestRateLimit(AsyncHTTPTestCase):
         self.assertNotIn("X-RateLimit-Reset", response.headers)
 
     def ratelimit(self, tokens, caught=True, url="/", **kwargs):
+        self.redis.flushall()
         for again in (1, 1, 0):
             for x in xrange(1, 10):
                 remaining = (tokens - x)

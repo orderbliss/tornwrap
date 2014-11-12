@@ -52,17 +52,27 @@ def traceback(exc_info=None, *args, **kwargs):
 
 
 def log(*args, **kwargs):
-    d = dict()
-    [d.update(a) for a in args]
-    d.update(kwargs)
-    _log.info(dumps(d, default=json_defaults))
+    try:
+        d = dict()
+        [d.update(a) for a in args]
+        d.update(kwargs)
+        debug = kwargs.pop('debug') if 'debug' in kwargs else False
+        _log.info(dumps(d, default=json_defaults))
+        if debug:
+            _log.debug(dumps(debug, default=json_defaults))
+    except:
+        traceback()
 
 
 def debug(*args, **kwargs):
-    d = dict()
-    [d.update(a) for a in args]
-    d.update(kwargs)
-    _log.debug(dumps(d, default=json_defaults))
+    try:
+        d = dict()
+        [d.update(a) for a in args]
+        d.update(kwargs)
+        _log.debug(dumps(d, default=json_defaults))
+    except:
+        traceback()
+
 
 setLevel = _log.setLevel
 
