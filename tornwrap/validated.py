@@ -12,7 +12,8 @@ def validated(arguments=None, body=None, extra_arguments=False, extra_body=False
     # arguments to ignore parsing
     ignore = re.compile(r"^_")
     application_json = re.compile(r".*application.+json.*")
-    if type(body) is dict:
+
+    if type(body) in (dict, str):
         body = parse(body, additional_properties=extra_body)
     elif body not in (None, False):
         raise ValueError("body must be type None, False, or dict")
@@ -40,7 +41,7 @@ def validated(arguments=None, body=None, extra_arguments=False, extra_body=False
                     except:
                         raise HTTPError(400, "body was not able to be decoded")
 
-                kwargs["body"] = body.validate(_body)
+                kwargs["body"] = body.validate(_body, adapt=True)
 
             elif body is False and self.request.body:
                 raise HTTPError(400, "no body arguments allowed")

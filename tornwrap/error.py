@@ -74,8 +74,9 @@ class ErrorHandler(RequestHandler):
         # critical, error, warning, info, debug
         try:
             if exc_info:
-                if type(exc_info) is not True:
-                    logger.traceback(exc_info=exc_info)
+                print "\033[92m@tornwrap.log\033[0m", _exception_title, exc_info, kwargs
+                # if type(exc_info) is not True:
+                #     logger.traceback(exc_info)
 
                 if self.settings.get('rollbar_access_token'):
                     try:
@@ -117,7 +118,9 @@ class ErrorHandler(RequestHandler):
                 self.write_error(400, type="ValidationError", reason=str(value), details=details, exc_info=(typ, value, tb))
 
             elif typ is AssertionError:
-                self.write_error(400, type="AssertionError", reason=str(value), exc_info=(typ, value, tb))
+                # you can do: assert False, (404, "not found")
+                status, message = (value.message if type(value.message) is tuple else (400, value.message))
+                self.write_error(status, type="AssertionError", reason=str(message), exc_info=(typ, message, tb))
 
             else:
                 if typ is not HTTPError or (typ is HTTPError and value.status_code >= 500):

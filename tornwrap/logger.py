@@ -28,6 +28,7 @@ else:
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     _log.addHandler(ch)
+    _log.setLevel(getattr(logging, os.getenv('LOGLVL', "INFO")))
 
 
 def json_defaults(obj):
