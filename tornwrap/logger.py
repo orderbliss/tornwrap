@@ -46,7 +46,10 @@ def traceback(exc_info=None, *args, **kwargs):
     d = dict()
     [d.update(a) for a in args]
     d.update(kwargs)
-    d['traceback'] = format_exception(*exc_info)
+    try:
+        d['traceback'] = format_exception(*exc_info)
+    except:
+        _log.error('Unable to parse traceback %s: %s' % (type(exc_info), repr(exc_info)))
     _log.error(dumps(d, default=json_defaults))
     if DEBUG:
         sys.stdout.write(highlight("\n".join(d['traceback']), lexer, formatter))

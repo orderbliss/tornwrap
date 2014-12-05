@@ -30,6 +30,11 @@ class Handler(ErrorHandler):
             self.get_argument("required")
 
     def post(self, arg):
+        try:
+            raise Exception("caught")
+        except:
+            self.traceback(extra_data="ok")
+            
         raise Exception("uncaught")
 
 
@@ -85,6 +90,10 @@ class Test(AsyncHTTPTestCase):
         self.assertIn("<pre>Missing required argument `required`</pre>", response.body)
         self.assertIn("&quot;uri&quot;: &quot;/arg&quot;,", response.body)
 
+    def test_uncaught(self):
+        response = self.fetch("/arg", method="POST", body="")
+        self.assertEqual(response.code, 500)
+        self.assertIn("<h1>500</h1>", response.body)
 
 class TestRollbar(AsyncHTTPTestCase):
     def get_app(self):

@@ -71,37 +71,25 @@ class ErrorHandler(RequestHandler):
         return {}
 
     def log(self, _exception_title=None, exc_info=None, **kwargs):
-        # critical, error, warning, info, debug
         try:
-            if exc_info:
-                print "\033[92m@tornwrap.log\033[0m", _exception_title, exc_info, kwargs
-                # if type(exc_info) is not True:
-                #     logger.traceback(exc_info)
-
-                if self.settings.get('rollbar_access_token'):
-                    try:
-                        # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
-                        self._rollbar_token = rollbar.report_message(_exception_title or "Generic",
-                                                                     request=self.request,
-                                                                     extra_data=kwargs,
-                                                                     exc_info=exc_info,
-                                                                     payload_data=self.get_rollbar_payload())
-                        kwargs['rollbar'] = self._rollbar_token
-                    except: # pragma: no cover
-                        logger.traceback()
-
             logger.log(kwargs)
-
         except: # pragma: no cover
             logger.traceback()
 
     def traceback(self, **kwargs):
+        if self.settings.get('rollbar_access_token'):
+            try:
+                # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
+                self._rollbar_token = rollbar.report_exc_info(extra_data=kwargs, payload_data=self.get_rollbar_payload())
+                kwargs['rollbar'] = self._rollbar_token
+            except: # pragma: no cover
+                logger.traceback()
         logger.traceback(**kwargs)
 
     def log_exception(self, typ, value, tb):
         try:
             if typ is MissingArgumentError:
-                self.log("warning", "MissingArgumentError", missing=str(value))
+                self.log("MissingArgumentError", missing=str(value))
                 self.write_error(400, type="MissingArgumentError", reason="Missing required argument `%s`"%value.arg_name, exc_info=(typ, value, tb))
 
             elif typ is ValidationError:
@@ -114,7 +102,7 @@ class ErrorHandler(RequestHandler):
                 if 'is not valid' in value.msg:
                     details['invalid'] = value.context
 
-                self.log('warning', "ValidationError", **details)
+                self.log("ValidationError", **details)
                 self.write_error(400, type="ValidationError", reason=str(value), details=details, exc_info=(typ, value, tb))
 
             elif typ is AssertionError:

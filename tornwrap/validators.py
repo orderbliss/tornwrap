@@ -1,9 +1,9 @@
 import re
-import valideer
+from valideer import *
 import timestring
 
 
-class boolean(valideer.Validator):
+class boolean(Validator):
     name = "bool"
     true = ("y", "yes", "1", "t", "true", "on")
     false = ("n", "no", "0", "f", "false", "off")
@@ -18,7 +18,7 @@ class boolean(valideer.Validator):
         else:
             self.error("bool is not valid")
 
-class timezone(valideer.String):
+class timezone(String):
     name = "timezone"
     timezones = {
         "US/EASTERN": "US/Eastern", "EST": "US/Eastern",  "-4": "US/Eastern",
@@ -33,63 +33,62 @@ class timezone(valideer.String):
         if result:
             return result if adapt else value
         else:
-            raise valideer.ValidationError("invalid timezoe", value)
+            self.error("invalid timezoe")
 
-class uuid(valideer.Pattern):
+class uuid(Pattern):
     name = "uuid"    
     regexp = re.compile(r"^[0-9a-f]{8}(-?[0-9a-f]{4}){3}-?[0-9a-f]{12}$")
 
-class _id(valideer.Pattern):
+class _id(Pattern):
     name = "id"
     regexp = re.compile(r"^[1-9]\d*$")
     def validate(self, value, adapt=True):
         super(_id, self).validate(str(value))
-        return int(value)
+        return int(value) if adapt else value
 
-class email(valideer.Pattern):
+class email(Pattern):
     name = "email"
     regexp = re.compile(r".+@.+\..+", re.I)
     def validate(self, value, adapt=True):
         super(email, self).validate(value)
         return value.lower() if adapt else value
 
-class branch(valideer.Pattern):
+class branch(Pattern):
     name = "branch"
     regexp = re.compile(r"^[\w\-\.\/\*\=\+\@\#\$\%\,\&\:\;]{1,255}$")
 
-class commit(valideer.Pattern):
+class commit(Pattern):
     name = "commit"
     regexp = re.compile(r"^\w{40}$")
     def validate(self, value, adapt=True):
         super(commit, self).validate(value)
-        return str(value).lower()
+        return str(value).lower() if adapt else value
 
-class ref(valideer.AnyOf):
+class ref(Validator):
     name = "ref"
-    _validators = map(valideer.parse, ("branch", "commit"))
-    def __init__(self): pass
+    validate = AnyOf("branch", "commit").validate
 
-class version(valideer.Pattern):
+class version(Pattern):
     name = "version"
     regexp = re.compile(r"^\d+\.\d+\.\d+$")
 
-class _callable(valideer.Validator):
+class _callable(Validator):
     name = "callable"
     def validate(self, value, adapt=True):
         if not callable(value):
             self.error("value must be callable")
         return value
 
-class date(valideer.Validator):
+class date(Validator):
     name = "date"
     def validate(self, value, adapt=True):
         try:
             date = timestring.Date(value)
             return date if adapt else value
-        except timestring.TimestringInvalid:
-            self.error("invalid date provied")
+        except timestring.TimestringInvalid as e:
+            self.error("invalid date provied, %s"%str(e))
 
-class range(valideer.Validator):
+class range(Validator):
     name = "daterange"
     def validate(self, value, adapt=True):
         try:
@@ -98,7 +97,7 @@ class range(valideer.Validator):
         except timestring.TimestringInvalid:
             self.error("invalid date range provied")
 
-class day(valideer.String):
+class day(String):
     name = "day"
     def validate(self, value, adapt=True):
         super(day, self).validate(str(value))
@@ -109,9 +108,9 @@ class day(valideer.String):
             for i, _day in ((0, "sun"), (1, "mon"), (2, "tue"), (3, "wed"), (4, "thu"), (5, "fri"), (6, "sat")):
                 if value.startswith(_day):
                     return i
-            raise valideer.ValidationError("invalid value")
+            self.error("invalid value")
 
-class rangetz(valideer.Validator):
+class rangetz(Validator):
     name = "daterangetz"
     def validate(self, value, adapt=True):
         try:
@@ -121,22 +120,24 @@ class rangetz(valideer.Validator):
                 return value
             return timestring.Range(value, tz="UTC")
         except timestring.TimestringInvalid:
-            raise valideer.ValidationError("Invalid range provied")
+            self.error("Invalid range provied")
 
-class elapse(valideer.String):
+class elapse(String):
     name = "elapse"
     def validate(self, value, adapt=True):
         super(elapse, self).validate(str(value))
         return str(len(timestring.Range(value)))
 
-class _float(valideer.Validator):
+class _float(Validator):
     name = "float"
     regexp = re.compile(r"\-?\d+(\,\d{3})*(\.\d+)?(k|m)?")
     def validate(self, value, adapt=True):
         if type(value) in (float, int, long):
             return float(value)
+        elif type(value) not in (str, unicode):
+            self.error("invalid type")
         if not self.regexp.match(value):
-            raise valideer.ValidationError("invalid characters found")
+            self.error("invalid characters found")
         x = 1000 if value.endswith('k') else 1000000 if value.endswith('m') else 1
         if x > 1:
             value = value[:-1]
@@ -144,9 +145,9 @@ class _float(valideer.Validator):
             value = float(value) * x
             return value
         except ValueError:
-            raise valideer.ValidationError("Value must be a valid number")
+            self.error("Value must be a valid number")
 
-class integar(valideer.String):
+class integar(String):
     name = "int"
     regexp = re.compile(r"^(\d+(\.\d+)?\%|(\-?\d+(\,\d{3})*(\.\d+)?(k|m)?))$")
     def validate(self, value, adapt=True):
@@ -155,7 +156,7 @@ class integar(valideer.String):
         else:
             value = str(value)
         if not self.regexp.match(value):
-            raise valideer.ValidationError("invalid characters found")
+            self.error("invalid characters found")
         x = 1000 if value.endswith('k') else 1000000 if value.endswith('m') else 1
         if x > 1:
             value = value[:-1]
@@ -164,24 +165,24 @@ class integar(valideer.String):
         try:
             return int(float(value) * x)
         except ValueError:
-            raise valideer.ValidationError("Value must be a valid number")
+            self.error("Value must be a valid number")
 
-class cc_name(valideer.Pattern):
+class cc_name(Pattern):
     name = "cc_name"
     regexp = re.compile(r"^.{1,50}$")
 
-class cc_cvc(valideer.Pattern):
+class cc_cvc(Pattern):
     name = "cc_cvc"
     regexp = re.compile(r"^\d{3,4}$")
 
-class cc_exp_month(valideer.Pattern):
+class cc_exp_month(Pattern):
     name = "cc_exp_month"
     regexp = re.compile(r"^\d{1,2}$")
 
-class cc_exp_year(valideer.Pattern):
+class cc_exp_year(Pattern):
     name = "cc_exp_year"
     regexp = re.compile(r"^\d{4}$")
 
-class cc_number(valideer.Pattern):
+class cc_number(Pattern):
     name = 'cc_number'
     regexp = re.compile(r"^\d{15,16}$")
