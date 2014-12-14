@@ -114,6 +114,7 @@ class RequestHandler(web.RequestHandler):
         if type(chunk) is dict:
             chunk.setdefault('meta', {}).setdefault("status", self.get_status() or 200)
             self.set_status(int(chunk['meta']['status']))
+            chunk['meta']['request'] = self.id
 
             export = self.export
             if export in ('txt', 'html'):
