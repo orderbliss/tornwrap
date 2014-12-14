@@ -1,5 +1,4 @@
 from json import loads
-from uuid import uuid4
 from functools import wraps
 from tornado.web import HTTPError
 from valideer import ValidationError
@@ -36,7 +35,7 @@ def endpoint(func):
                 # -------------
                 if '*' not in getattr(self.current_user, "scope", ['*']):
                     resource = "_".join((self.resource, method))
-                    if resource not in self.current_user.scope:
+                    if resource not in self.current_user.scope and ("*_%s" % self.request.method.lower()) not in self.current_user.scope:
                         raise HTTPError(401, reason="permission denied to resource at %s"%resource)
 
             # Validation
