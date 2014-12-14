@@ -1,9 +1,10 @@
 import re
+import sys
+import rollbar
 import tornpsql
 from json import dumps
 from uuid import uuid4
 from tornado import web
-from tornado import template
 import traceback as _traceback
 from tornado.web import HTTPError
 from valideer import ValidationError
@@ -13,50 +14,8 @@ from valideer.base import get_type_name
 from . import logger
 from .helpers import json_defaults
 
-try:
-    import rollbar
-except ImportError: # pragma: no cover
-    rollbar = None
-
 
 REMOVE_ACCESS_TOKEN = re.compile(r"access_token\=(\w+)")
-
-
-TEMPLATE = template.Template("""
-<html>
-<title>Error</title>
-<head>
-  <link type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.0/styles/github.min.css" rel="stylesheet">
-  <style type="text/css">
-    body, html{padding: 20px;margin: 20px;}
-    h1{font-family: sans-serif; font-size:100px; color:#ececec; text-align:center;}
-    h2{font-family: monospace;}
-    pre{overflow:scroll; padding: 2em !important;}
-  </style>
-</head>
-<body>
-  <h1>{{status_code}}</h1>
-  {% if rollbar %}
-    <h3><a href="https://rollbar.com/item/uuid/?uuid={{rollbar}}"><img src="https://avatars1.githubusercontent.com/u/3219584?v=2&s=30"> View on Rollbar</a></h3>
-  {% end %}
-  <h2>Error</h2>
-  <pre>{{reason}}</pre>
-  <h2>Traceback</h2>
-  <pre>{{traceback}}</pre>
-  <h2>Request</h2>
-  <pre class="json">{{request}}</pre>
-</body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.0/highlight.min.js"></script>
-<script type="text/javascript">
-  $(function() {
-    $('pre').each(function(i, block) {
-        hljs.highlightBlock(block);
-    });
-  });
-</script>
-</html>
-""")
 
 
 class RequestHandler(web.RequestHandler):
@@ -67,17 +26,19 @@ class RequestHandler(web.RequestHandler):
 
     @property
     def debug(self):
-        return self.application.settings['debug']
+        return self.application.settings.get('debug', False)
 
     @property
     def export(self):
         return (self.path_kwargs.get('export', None) or ('html' if 'text/html' in self.request.headers.get("Accept", "") else 'json')).replace('.', '')
 
     def get_rollbar_payload(self):
-        return dict(user=self.current_user if hasattr(self, 'current_user') else None, id=self.id)
+        return dict(user=self.current_user if hasattr(self, 'current_user') else None, 
+                    id=self.id)
 
     def get_log_payload(self):
-        return dict(user=self.current_user if hasattr(self, 'current_user') else None, id=self.id)
+        return dict(user=self.current_user if hasattr(self, 'current_user') else None, 
+                    id=self.id)
 
     def get_url(self, *url, **kwargs):
         _url = "/".join(url)
@@ -100,6 +61,7 @@ class RequestHandler(web.RequestHandler):
             logger.traceback()
 
     def traceback(self, **kwargs):
+        self.save_traceback(sys.exc_info())
         if self.settings.get('rollbar_access_token'):
             try:
                 # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
@@ -119,6 +81,10 @@ class RequestHandler(web.RequestHandler):
                                             status=response.code, 
                                             headers=response.headers)))
 
+    def save_traceback(self, exc_info):
+        if not hasattr(self, 'tracebacks'):
+            self.tracebacks = []
+        self.tracebacks.append(_traceback.format_exception(*exc_info))
 
     def log_exception(self, typ, value, tb):
         try:
@@ -139,11 +105,6 @@ class RequestHandler(web.RequestHandler):
                 self.log("ValidationError", **details)
                 self.write_error(400, type="ValidationError", reason=str(value), details=details, exc_info=(typ, value, tb))
 
-            elif typ is AssertionError:
-                # you can do: assert False, (404, "not found")
-                status, message = (value.message if type(value.message) is tuple else (400, value.message))
-                self.write_error(status, type="AssertionError", reason=str(message), exc_info=(typ, message, tb))
-
             else:
                 if typ is not HTTPError or (typ is HTTPError and value.status_code >= 500):
                     logger.traceback(exc_info=(typ, value, tb))
@@ -151,9 +112,11 @@ class RequestHandler(web.RequestHandler):
                 if self.settings.get('rollbar_access_token') and not (typ is HTTPError and value.status_code < 500):
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L218
                     try:
-                        self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), request=self.request, payload_data=self.get_rollbar_payload())
-                    except Exception as e: # pragma: no cover
-                        logger.log.error("Rollbar exception: %s", str(e))
+                        self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), 
+                                                                      request=self.request, 
+                                                                      payload_data=self.get_rollbar_payload())
+                    except: # pragma: no cover
+                        logger.traceback()
 
                 super(RequestHandler, self).log_exception(typ, value, tb)
 
@@ -192,22 +155,19 @@ class RequestHandler(web.RequestHandler):
         if self.settings.get('save_requests') is True and self.request.method != "GET" and self.get_status() != 401:
             chunk['meta']['request'] = self.id
             try:
-                # ... keep self.error
-                #     which may incldue traceback.format_exception(*kwargs["exc_info"])
-
                 # dont save Auth token
                 self.request.headers.pop('Authorization', '') 
                 # remove ?access_token=abc
                 url = REMOVE_ACCESS_TOKEN.sub('access_token=<token>', self.request.uri)
                 
-                self.db.get("""INSERT INTO requests (requestid, status, endpoint, method, uri, request, api, response, rollbar) 
-                               values (%s, %s, %s, %s, %s, %s::json, %s::json, %s::json, %s);""",
+                self.db.get("""INSERT INTO requests (requestid, status, endpoint, method, uri, tracebacks, request, api, response, rollbar) 
+                               VALUES (%s, %s, %s, %s, %s, %s::json, %s::json, %s::json, %s::json, %s);""",
                             self.id, str(self.get_status()), self.resource,
-                            self.request.method.upper(), url,
+                            self.request.method.upper(), url, self.tracebacks,
                             dumps(dict(headers=self.request.headers, query=self.query, body=self.body), default=json_defaults),
                             dumps(getattr(self, 'apis', None), default=json_defaults),
                             dumps(dict(headers=self._headers, body=chunk), default=json_defaults),
-                            self._rollbar_token)
+                            getattr(self, '_rollbar_token', None))
             except:
                 self.traceback()
 
@@ -217,39 +177,19 @@ class RequestHandler(web.RequestHandler):
 
     def render_string(self, template, **kwargs):
         data = dict(owner=None, repo=None, file_name=None)
-        data.update(self.application.extra)
+        data.update(getattr(self.application, 'extra', {}))
         data.update(self.path_kwargs)
         data.update(kwargs)
         data['debug'] = self.debug
         return super(RequestHandler, self).render_string(template, dumps=dumps, **data)
 
-    # def write_error(self, status_code, type=None, reason=None, details=None, exc_info=None, **kwargs):
-    #     if exc_info:
-    #         traceback = ''.join(["%s<br>" % line for line in _traceback.format_exception(*exc_info)])
-    #     else:
-    #         exc_info = [None, None]
-    #         traceback = None
-
-    #     rollbar_token = getattr(self, "_rollbar_token", None)
-    #     if rollbar_token:
-    #         self.set_header('X-Rollbar-Token', rollbar_token)
-    #     args = dict(status_code=status_code, 
-    #                 type=type,
-    #                 reason=reason or self._reason or exc_info[1],
-    #                 details=details,
-    #                 rollbar=rollbar_token,
-    #                 traceback=traceback, 
-    #                 request=dumps(self.request.__dict__, indent=2, default=lambda a: str(a)))
-
-    #     self.set_status(status_code)
-    #     if self.settings.get('error_template'):
-    #         self.render(self.settings.get('error_template'), **args)
-    #     else:
-    #         self.finish(TEMPLATE.generate(**args))
-
     def write_error(self, status_code, reason=None, exc_info=None):
-        data = dict(for_human=reason or self._reason or "unknown", for_robot="unknown")
+        data = dict(for_human=reason or self._reason or "unknown", 
+                    for_robot="unknown")
         if exc_info:
+            # to the request
+            self.save_traceback(exc_info)
+
             error = exc_info[1]
             if isinstance(error, ValidationError):
                 status_code = 400
@@ -272,12 +212,8 @@ class RequestHandler(web.RequestHandler):
         
         self.set_status(status_code)
         
-        if self._rollbar_token:
+        if hasattr(self, '_rollbar_token'):
             self.set_header('X-Rollbar-Token', self._rollbar_token)
             data['rollbar'] = self._rollbar_token
 
         self.finish({"error":data})
-
-    def get(self, *a, **k):
-        raise HTTPError(404)
-
