@@ -13,7 +13,6 @@ env:
     - secure: "f/eODSkwYRlMwrLkPSipDevXi6nD1m3qYlOj9XL7yyi+EhUEzENB8ypgi9ca\nN9w+vFmKr12kjbMdcm/f1UCYCGyLq2UR9sq699e3zGRL8Xz3quLIP1I7VG5K\nk+FWysQ783PhnSaa71Gx0cU9oO/JS1X+X3zsyhtizGaY/f4dACM="
 python:
   - 2.7
-  - pypy
 install:
   - pip install -r requirements.txt
   - pip install -r tests/requirements.txt

@@ -71,16 +71,6 @@ class RequestHandler(web.RequestHandler):
                 logger.traceback()
         logger.traceback(**kwargs)
 
-    def save_request(self, title, request, response, parsed=None):
-        if not hasattr(self, 'apis'):
-            self.apis = []
-        self.apis.append(dict(request=request, title=title, url=response.effective_url,
-                              method=response.request.method,
-                              response=dict(body=response.body, 
-                                            parsed=parsed, 
-                                            status=response.code, 
-                                            headers=response.headers)))
-
     def save_traceback(self, exc_info):
         if not hasattr(self, 'tracebacks'):
             self.tracebacks = []
@@ -93,17 +83,8 @@ class RequestHandler(web.RequestHandler):
                 self.write_error(400, type="MissingArgumentError", reason="Missing required argument `%s`"%value.arg_name, exc_info=(typ, value, tb))
 
             elif typ is ValidationError:
-                details = dict(context=value.context,
-                               reason=str(value),
-                               value=str(repr(value.value)),
-                               value_type=get_type_name(value.value.__class__))
-                if 'additional properties' in value.msg:
-                    details['additional'] = value.value
-                if 'is not valid' in value.msg:
-                    details['invalid'] = value.context
-
-                self.log("ValidationError", **details)
-                self.write_error(400, type="ValidationError", reason=str(value), details=details, exc_info=(typ, value, tb))
+                self.log("ValidationError", message=str(value))
+                self.write_error(400, type="ValidationError", reason=str(value), exc_info=(typ, value, tb))
 
             else:
                 if typ is not HTTPError or (typ is HTTPError and value.status_code >= 500):
@@ -150,30 +131,10 @@ class RequestHandler(web.RequestHandler):
                 except IOError:
                     chunk = "template not found at %s"%doc
 
-        # Save Requests
-        # -------------
-        if self.settings.get('save_requests') is True and self.request.method != "GET" and self.get_status() != 401:
-            chunk['meta']['request'] = self.id
-            try:
-                # dont save Auth token
-                self.request.headers.pop('Authorization', '') 
-                # remove ?access_token=abc
-                url = REMOVE_ACCESS_TOKEN.sub('access_token=<token>', self.request.uri)
-                
-                self.db.get("""INSERT INTO requests (requestid, status, endpoint, method, uri, tracebacks, request, api, response, rollbar) 
-                               VALUES (%s, %s, %s, %s, %s, %s::json, %s::json, %s::json, %s::json, %s);""",
-                            self.id, str(self.get_status()), self.resource,
-                            self.request.method.upper(), url, self.tracebacks,
-                            dumps(dict(headers=self.request.headers, query=self.query, body=self.body), default=json_defaults),
-                            dumps(getattr(self, 'apis', None), default=json_defaults),
-                            dumps(dict(headers=self._headers, body=chunk), default=json_defaults),
-                            getattr(self, '_rollbar_token', None))
-            except:
-                self.traceback()
-
         # Finish Request
         # --------------
         super(RequestHandler, self).finish(chunk)
+        return chunk
 
     def render_string(self, template, **kwargs):
         data = dict(owner=None, repo=None, file_name=None)
@@ -212,7 +173,7 @@ class RequestHandler(web.RequestHandler):
         
         self.set_status(status_code)
         
-        if hasattr(self, '_rollbar_token'):
+        if hasattr(self, '_rollbar_token') and self._rollbar_token:
             self.set_header('X-Rollbar-Token', self._rollbar_token)
             data['rollbar'] = self._rollbar_token
 
