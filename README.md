@@ -8,8 +8,6 @@ pip install tornwrap
 
 ## Project Contents
 
-- [`@authenticated`](#authenticated)
-  - via `Basic realm=Restricted`
 - [`@ratelimited`](#ratelimited)
   - limit usage for guests and authenticated users
 - [`@validated`](#validated)
@@ -23,24 +21,6 @@ pip install tornwrap
 - *future* [`@markdown`](#markdown)
   - generate html pages from a Github repo containing markdown
 
-
-# `@authenticated`
-
-```python
-from tornwrap import authenticated
-
-class Handler(RequestHandler):
-    def get_authenticated_user(self, user, password):
-        return self.db.get("select * from users where username=%s and password=%s limit 1", user, password)
-        if result:
-            return result # will call `self.current_user = result` for you
-        else:
-            return None # will raise HTTPError(401)
-
-    @authenticated
-    def get(self):
-        self.write("Hello, world!")
-```
 
 # `@ratelimited`
 > Requires `redis`
