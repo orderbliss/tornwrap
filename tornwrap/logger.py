@@ -1,5 +1,6 @@
 import os
 import sys
+import inspect
 import logging
 from json import dumps
 from decimal import Decimal
@@ -11,9 +12,10 @@ from tornado.web import StaticFileHandler
 DEBUG = (os.getenv('DEBUG') == 'TRUE')
 if DEBUG:
     from pygments import highlight
+    from pygments.lexers import JsonLexer
     from pygments.lexers import PythonLexer
     from pygments.formatters import TerminalFormatter
-    lexer, formatter = PythonLexer(), TerminalFormatter()
+    python_lexer, json_lexer, formatter = PythonLexer(), JsonLexer(), TerminalFormatter()
 
 _log = logging.getLogger()
 
@@ -52,7 +54,7 @@ def traceback(exc_info=None, *args, **kwargs):
         _log.error('Unable to parse traceback %s: %s' % (type(exc_info), repr(exc_info)))
     _log.error(dumps(d, default=json_defaults))
     if DEBUG:
-        sys.stdout.write(highlight("\n".join(d['traceback']), lexer, formatter))
+        sys.stdout.write(highlight("\n".join(d['traceback']), python_lexer, formatter))
 
 
 def log(*args, **kwargs):
@@ -60,20 +62,44 @@ def log(*args, **kwargs):
         d = dict()
         [d.update(a) for a in args]
         d.update(kwargs)
-        debug = kwargs.pop('debug') if 'debug' in kwargs else False
-        _log.info(dumps(d, default=json_defaults))
-        if debug:
-            _log.debug(dumps(debug, default=json_defaults))
+        _debug = kwargs.pop('debug') if 'debug' in kwargs else False
+        if DEBUG:
+            callerframerecord = inspect.stack()[1]
+            info = inspect.getframeinfo(callerframerecord[0])
+            _log.info("\033[90mLOG\033[0m %s \033[90m%s\033[0m via \033[95m%s()\033[0m" % (info.filename, str(info.lineno), info.function))
+            _log.info(highlight(dumps(d, indent=2, sort_keys=True, default=json_defaults), json_lexer, formatter))
+        else:
+            _log.info(dumps(d, default=json_defaults))
+        if _debug:
+            debug(_debug)
     except:
         traceback()
 
 
-def debug(*args, **kwargs):
+def debug(message=None, *args, **kwargs):
     try:
         d = dict()
+        if isinstance(message, dict):
+            d.update(message)
+        elif message:
+            if not args and not kwargs:
+                if DEBUG:
+                    callerframerecord = inspect.stack()[1]
+                    info = inspect.getframeinfo(callerframerecord[0])
+                    _log.info("\033[90mDEBUG\033[0m %s \033[90m%s\033[0m via \033[95m%s()\033[0m: %s" % (info.filename, str(info.lineno), info.function, message))
+                else:
+                    _log.debug(message)
+                return
+            d['message'] = message
         [d.update(a) for a in args]
         d.update(kwargs)
-        _log.debug(dumps(d, default=json_defaults))
+        if DEBUG:
+            callerframerecord = inspect.stack()[1]
+            info = inspect.getframeinfo(callerframerecord[0])
+            _log.info("\033[90mDEBUG\033[0m %s \033[90m%s\033[0m via \033[95m%s()\033[0m" % (info.filename, str(info.lineno), info.function))
+            _log.info(highlight(dumps(d, indent=2, sort_keys=True, default=json_defaults), json_lexer, formatter))
+        else:
+            _log.debug(dumps(d, default=json_defaults))
     except:
         traceback()
 

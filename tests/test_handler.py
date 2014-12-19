@@ -23,7 +23,7 @@ class TestContentType(AsyncHTTPTestCase):
         return Application([(r'/', Handler)], log_function=logger.handler)
 
     def test_json(self):
-        response = self.fetch("/")
+        response = self.fetch("/", headers={"Accept": "application/json"})
         self.assertEqual(response.code, 200)
         self.assertEqual(response.headers.get('Content-Type'), 'application/json; charset=UTF-8')
         body = loads(response.body)
@@ -41,7 +41,7 @@ class TestListResult(AsyncHTTPTestCase):
         return Application([(r'/', Handler)], log_function=logger.handler)
 
     def test_json(self):
-        response = self.fetch("/")
+        response = self.fetch("/", headers={"Accept": "application/json"})
         self.assertEqual(response.code, 200)
         self.assertEqual(response.headers.get('Content-Type'), 'application/json; charset=UTF-8')
         body = loads(response.body)
@@ -57,7 +57,7 @@ class TestString(AsyncHTTPTestCase):
                 self.finish("what")
         return Application([(r'/', Handler)], log_function=logger.handler)
 
-    def test_json(self):
+    def test_string(self):
         response = self.fetch("/")
         self.assertEqual(response.code, 200)
         self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
@@ -73,7 +73,7 @@ class TestErrorNoRollbar(AsyncHTTPTestCase):
         return Application([(r'/', Handler)])
 
     def test_json(self):
-        response = self.fetch("/")
+        response = self.fetch("/", headers={"Accept": "application/json"})
         self.assertEqual(response.code, 500)
         self.assertEqual(response.headers.get('Content-Type'), 'application/json; charset=UTF-8')
         self.assertEqual(response.headers.get('X-Rollbar-Token'), None)
@@ -107,22 +107,22 @@ class TestRollbar(AsyncHTTPTestCase):
                            default_handler_class=RequestHandler)
 
     def test_basics(self):
-        response = self.fetch("/page/405", headers={"Accept": "text/html"})
+        response = self.fetch("/page/405")
         self.assertEqual(response.code, 405)
-        self.assertEqual(response.headers.get('Content-Type'), 'text/html')
+        self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
 
     def test_details(self):
-        response = self.fetch("/validation?extra=t", headers={"Accept": "text/html"})
+        response = self.fetch("/validation?extra=t")
         self.assertEqual(response.code, 400)
-        self.assertEqual(response.headers.get('Content-Type'), 'text/html')
+        self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
 
-        response = self.fetch("/validation?value=10", headers={"Accept": "text/html"})
+        response = self.fetch("/validation?value=10")
         self.assertEqual(response.code, 400)
-        self.assertEqual(response.headers.get('Content-Type'), 'text/html')
+        self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
 
         response = self.fetch("/missing_argument")
         self.assertEqual(response.code, 400)
-        self.assertEqual(response.headers.get('Content-Type'), 'application/json; charset=UTF-8')
+        self.assertEqual(response.headers.get('Content-Type'), 'text/html; charset=UTF-8')
 
     def test_rollbar(self):
         response = self.fetch("/", method="POST", body="")

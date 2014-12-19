@@ -9,13 +9,20 @@ import traceback as _traceback
 from tornado.web import HTTPError
 from valideer import ValidationError
 from tornado.httputil import url_concat
-from valideer.base import get_type_name
 
 from . import logger
-from .helpers import json_defaults
 
 
 REMOVE_ACCESS_TOKEN = re.compile(r"access_token\=(\w+)")
+
+CONTENT_TYPES = {
+    "html": "text/html",
+    "csv":  "text/csv", # coming soon
+    "xml":  "application/vnd.ms-excel", # coming soon
+    "txt":  "text/plain",
+    "xml":  "text/xml", # coming soon
+    "json": "application/json",
+}
 
 
 class RequestHandler(web.RequestHandler):
@@ -30,7 +37,17 @@ class RequestHandler(web.RequestHandler):
 
     @property
     def export(self):
-        return (self.path_kwargs.get('export', None) or ('html' if 'text/html' in self.request.headers.get("Accept", "") else 'json')).replace('.', '')
+        accept = self.request.headers.get("Accept", "")
+        export = (self.path_kwargs.get('export', None) \
+                  or ('html'  if 'text/html'                in accept else \
+                      'txt'   if 'text/plain'               in accept else \
+                      'csv'   if 'text/csv'                 in accept else \
+                      'xml'   if 'text/xml'                 in accept else \
+                      'xls'   if 'application/vnd.ms-excel' in accept else \
+                      'json'  if 'application/json'         in accept else \
+                      self.application.settings.get('export_defaults', {"GET":"html"}).get(self.request.method, 'json'))).replace('.', '')
+        self.set_header('Content-Type', "%s; charset=UTF-8" % CONTENT_TYPES[export])
+        return export
 
     def get_rollbar_payload(self):
         return dict(user=self.current_user if hasattr(self, 'current_user') else None, 
@@ -118,7 +135,6 @@ class RequestHandler(web.RequestHandler):
 
             export = self.export
             if export in ('txt', 'html'):
-                self.set_header('Content-Type', 'text/%s' % ('plain' if export == 'txt' else 'html'))
                 if self.get_status() in (200, 201):
                     # ex:  html/customers_get_one.html
                     doc = "%s/%s_%s_%s.%s" % (export, self.resource, self.request.method.lower(), 
