@@ -69,7 +69,7 @@ def log(*args, **kwargs):
             _log.info("\033[90mLOG\033[0m %s \033[90m%s\033[0m via \033[95m%s()\033[0m" % (info.filename, str(info.lineno), info.function))
             _log.info(highlight(dumps(d, indent=2, sort_keys=True, default=json_defaults), json_lexer, formatter))
         else:
-            _log.info(dumps(d, default=json_defaults))
+            _log.info(dumps(d, default=json_defaults, sort_keys=True))
         if _debug:
             debug(_debug)
     except:

@@ -58,7 +58,13 @@ class RequestHandler(web.RequestHandler):
                     id=self.id)
 
     def get_url(self, *url, **kwargs):
-        _url = "/".join(url)
+        if url and url[0] is True:
+            _url = self.request.path
+            defs = self.query.copy()
+            defs.update(kwargs)
+            kwargs = defs
+        else:
+            _url = "/".join(url)
         return url_concat("%s://%s/%s" % (self.request.protocol, self.request.host, _url[1:] if _url.startswith('/') else _url), kwargs)
 
     @property
