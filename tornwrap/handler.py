@@ -49,6 +49,15 @@ class RequestHandler(web.RequestHandler):
         self.set_header('Content-Type', "%s; charset=UTF-8" % CONTENT_TYPES[export])
         return export
 
+    @property
+    def query(self):
+        if not hasattr(self, "_query"):
+            query = dict([(k, v[0] if len(v)==1 else v) for k, v in self.request.query_arguments.items() if v!=['']]) if self.request.query_arguments else {}
+            query.pop('access_token', False)
+            query.pop('_', None) # ?_=1417978116609
+            self._query = query
+        return self._query
+
     def get_rollbar_payload(self):
         return dict(user=self.current_user if hasattr(self, 'current_user') else None, 
                     id=self.id)

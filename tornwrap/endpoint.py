@@ -17,7 +17,6 @@ def endpoint(func):
                 raise HTTPError(403, reason='ssl endpoint required')
         
         self.body = {}
-        self.query = {}
         self._rollbar_token = None
 
         method = self.request.method.lower()
@@ -55,11 +54,9 @@ def endpoint(func):
 
         # Query
         # -----
-        query = dict([(k, v[0] if len(v)==1 else v) for k, v in self.request.query_arguments.items() if v!=['']]) if self.request.query_arguments else {}
-        query.pop('access_token', False)
-        query.pop('_', None) # ?_=1417978116609
         validate_query = endpoint.get('query')
-        self.query = validate_query(query) if validate_query else query
+        if validate_query:
+            self.query = validate_query(self.query)
 
         return func(self, *args, **kwargs)
 
