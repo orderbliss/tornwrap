@@ -150,18 +150,21 @@ class RequestHandler(web.RequestHandler):
 
             export = self.export
             if export in ('txt', 'html'):
+                doc = None
                 if self.get_status() in (200, 201):
-                    # ex:  html/customers_get_one.html
-                    doc = "%s/%s_%s_%s.%s" % (export, self.resource, self.request.method.lower(), 
-                                              ("one" if self.path_kwargs.get('id') and self.path_kwargs.get('more') is None else "many"), export)
+                    if hasattr(self, "resource"):
+                        # ex:  html/customers_get_one.html
+                        doc = "%s/%s_%s_%s.%s" % (export, self.resource, self.request.method.lower(), 
+                                                  ("one" if self.path_kwargs.get('id') and self.path_kwargs.get('more') is None else "many"), export)
                 else:
                     # ex:  html/error/401.html
                     doc = "%s/errors/%s.%s" % (export, self.get_status(), export)
 
-                try:
-                    chunk = self.render_string(doc, **chunk)
-                except IOError:
-                    chunk = "template not found at %s"%doc
+                if doc:
+                    try:
+                        chunk = self.render_string(doc, **chunk)
+                    except IOError:
+                        chunk = "template not found at %s"%doc
 
         # Finish Request
         # --------------
