@@ -136,7 +136,6 @@ class RequestHandler(web.RequestHandler):
         except: # pragma: no cover
             super(RequestHandler, self).log_exception(typ, value, tb)
 
-
     def finish(self, chunk=None):
         # Manage Results
         # --------------

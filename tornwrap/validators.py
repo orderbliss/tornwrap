@@ -18,6 +18,7 @@ class boolean(Validator):
         else:
             self.error("bool is not valid")
 
+
 class timezone(String):
     name = "timezone"
     timezones = {
@@ -35,9 +36,11 @@ class timezone(String):
         else:
             self.error("invalid timezoe")
 
+
 class uuid(Pattern):
     name = "uuid"    
     regexp = re.compile(r"^[0-9a-f]{8}(-?[0-9a-f]{4}){3}-?[0-9a-f]{12}$")
+
 
 class _id(Pattern):
     name = "id"
@@ -46,6 +49,7 @@ class _id(Pattern):
         super(_id, self).validate(str(value))
         return int(value) if adapt else value
 
+
 class email(Pattern):
     name = "email"
     regexp = re.compile(r".+@.+\..+", re.I)
@@ -53,9 +57,11 @@ class email(Pattern):
         super(email, self).validate(value)
         return value.lower() if adapt else value
 
+
 class branch(Pattern):
     name = "branch"
     regexp = re.compile(r"^[\w\-\.\/\*\=\+\@\#\$\%\,\&\:\;]{1,255}$")
+
 
 class commit(Pattern):
     name = "commit"
@@ -64,13 +70,16 @@ class commit(Pattern):
         super(commit, self).validate(value)
         return str(value).lower() if adapt else value
 
+
 class ref(Validator):
     name = "ref"
     validate = AnyOf("branch", "commit").validate
 
+
 class version(Pattern):
     name = "version"
     regexp = re.compile(r"^\d+\.\d+\.\d+$")
+
 
 class _callable(Validator):
     name = "callable"
@@ -78,6 +87,7 @@ class _callable(Validator):
         if not callable(value):
             self.error("value must be callable")
         return value
+
 
 class date(Validator):
     name = "date"
@@ -88,6 +98,17 @@ class date(Validator):
         except timestring.TimestringInvalid as e:
             self.error("invalid date provied, %s"%str(e))
 
+
+class date_past(Validator):
+    name = "date-past"
+    def validate(self, value, adapt=True):
+        try:
+            date = timestring.Date((value + " ago") if isinstance(value, (str, unicode)) else value)
+            return date if adapt else value
+        except timestring.TimestringInvalid as e:
+            self.error("invalid date provied, %s"%str(e))
+
+
 class range(Validator):
     name = "daterange"
     def validate(self, value, adapt=True):
@@ -96,6 +117,7 @@ class range(Validator):
             return _range if adapt else value
         except timestring.TimestringInvalid:
             self.error("invalid date range provied")
+
 
 class day(String):
     name = "day"
@@ -110,6 +132,7 @@ class day(String):
                     return i
             self.error("invalid value")
 
+
 class rangetz(Validator):
     name = "daterangetz"
     def validate(self, value, adapt=True):
@@ -122,11 +145,13 @@ class rangetz(Validator):
         except timestring.TimestringInvalid:
             self.error("Invalid range provied")
 
+
 class elapse(String):
     name = "elapse"
     def validate(self, value, adapt=True):
         super(elapse, self).validate(str(value))
         return str(len(timestring.Range(value)))
+
 
 class _float(Validator):
     name = "float"
@@ -146,6 +171,7 @@ class _float(Validator):
             return value
         except ValueError:
             self.error("Value must be a valid number")
+
 
 class integar(String):
     name = "int"
@@ -167,21 +193,26 @@ class integar(String):
         except ValueError:
             self.error("Value must be a valid number")
 
+
 class cc_name(Pattern):
     name = "cc_name"
     regexp = re.compile(r"^.{1,50}$")
+
 
 class cc_cvc(Pattern):
     name = "cc_cvc"
     regexp = re.compile(r"^\d{3,4}$")
 
+
 class cc_exp_month(Pattern):
     name = "cc_exp_month"
     regexp = re.compile(r"^\d{1,2}$")
 
+
 class cc_exp_year(Pattern):
     name = "cc_exp_year"
     regexp = re.compile(r"^\d{4}$")
+
 
 class cc_number(Pattern):
     name = 'cc_number'
