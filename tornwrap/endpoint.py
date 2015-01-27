@@ -1,5 +1,6 @@
 from json import loads
 from functools import wraps
+from urlparse import parse_qsl
 from tornado.web import HTTPError
 from valideer import ValidationError
 
@@ -45,8 +46,13 @@ def endpoint(func):
         # ----------
         validate_body = endpoint.get('body')
         if validate_body:
+            body = self.request.body or '{}'
             try:
-                self.body = validate_body(loads(self.request.body or '{}'))
+                try:
+                    body = loads(body)
+                except ValueError:
+                    body = dict(parse_qsl(body))
+                self.body = validate_body(body)
             except ValidationError:
                 raise
             except ValueError as e:
