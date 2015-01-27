@@ -9,6 +9,7 @@ import traceback as _traceback
 from tornado.web import HTTPError
 from valideer import ValidationError
 from tornado.httputil import url_concat
+from tornado.httpclient import AsyncHTTPClient
 
 from . import logger
 
@@ -57,6 +58,13 @@ class RequestHandler(web.RequestHandler):
             query.pop('_', None) # ?_=1417978116609
             self._query = query
         return self._query
+
+    @property
+    def fetch(self):
+        """Quicker method to access
+        res = yield self.fetch("...")
+        """
+        return AsyncHTTPClient().fetch
 
     def get_rollbar_payload(self):
         return dict(user=self.current_user if hasattr(self, 'current_user') else None, 
