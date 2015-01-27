@@ -67,12 +67,10 @@ class RequestHandler(web.RequestHandler):
         return AsyncHTTPClient().fetch
 
     def get_rollbar_payload(self):
-        return dict(user=self.current_user if hasattr(self, 'current_user') else None, 
-                    id=self.id)
+        return {}
 
     def get_log_payload(self):
-        return dict(user=self.current_user if hasattr(self, 'current_user') else None, 
-                    id=self.id)
+        return {}
 
     def get_url(self, *url, **kwargs):
         if url and url[0] is True:
