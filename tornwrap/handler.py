@@ -1,6 +1,5 @@
 import re
 import sys
-import rollbar
 import tornpsql
 from json import dumps
 from uuid import uuid4
@@ -10,6 +9,10 @@ from tornado.web import HTTPError
 from valideer import ValidationError
 from tornado.httputil import url_concat
 from tornado.httpclient import AsyncHTTPClient
+try:
+    import rollbar
+except ImportError:
+    rollbar = None
 
 from . import logger
 
@@ -100,7 +103,7 @@ class RequestHandler(web.RequestHandler):
 
     def traceback(self, **kwargs):
         self.save_traceback(sys.exc_info())
-        if self.settings.get('rollbar_access_token'):
+        if self.settings.get('rollbar_access_token') and rollbar:
             try:
                 # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
                 self._rollbar_token = rollbar.report_exc_info(extra_data=kwargs, payload_data=self.get_rollbar_payload())
@@ -128,7 +131,7 @@ class RequestHandler(web.RequestHandler):
                 if typ is not HTTPError or (typ is HTTPError and value.status_code >= 500):
                     logger.traceback(exc_info=(typ, value, tb))
 
-                if self.settings.get('rollbar_access_token') and not (typ is HTTPError and value.status_code < 500):
+                if self.settings.get('rollbar_access_token') and rollbar and not (typ is HTTPError and value.status_code < 500):
                     # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L218
                     try:
                         self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), 
