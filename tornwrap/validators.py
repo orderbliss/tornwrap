@@ -34,7 +34,7 @@ class timezone(String):
         if result:
             return result if adapt else value
         else:
-            self.error("invalid timezoe")
+            self.error("invalid timezone")
 
 
 class uuid(Pattern):
