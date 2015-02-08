@@ -1,3 +1,4 @@
+import re
 import os
 import sys
 import inspect
@@ -104,7 +105,11 @@ def debug(message=None, *args, **kwargs):
         traceback()
 
 
+
 setLevel = _log.setLevel
+
+FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password\w*\=)(?P<secret>[^\&]+)')
+
 
 def handler(handler):
     if isinstance(handler, (StaticFileHandler, RedirectHandler)):
@@ -113,7 +118,7 @@ def handler(handler):
     # Build log json
     _basics = {"status":    handler.get_status(),
                "method":    handler.request.method,
-               "uri":       handler.request.uri,
+               "uri":       FILTER_SECRETS.sub(r'\g<key>secret', handler.request.uri),
                "reason":    handler._reason,
                "ms":        "%.0f" % (1000.0 * handler.request.request_time())}
 
