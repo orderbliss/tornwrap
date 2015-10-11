@@ -37,10 +37,8 @@ class Handler(RequestHandler):
         self.write("Hello, world!")
 
     def was_rate_limited(self, tokens, remaining, ttl):
-        # notice we do not raise HTTPError here
-        # because it will reset headers, which kinda sucks
-        self.set_status(403)
-        self.finish({"message": "You have been rate limited."})
+        # this is the default action
+        raise HTTPError(403, reason="You have been rate limited.")
 ```
 
 # `@validated`

@@ -1,9 +1,7 @@
-import time
 import functools
-from tornado.web import HTTPError
 
 
-def ratelimited(user=None, guest=None, format="tornrate:%s"):
+def ratelimited(user=None, guest=None, redis_key_format="ratelimited.%s"):
     """Rate limit decorator
 
     ### Headers
@@ -38,33 +36,29 @@ def ratelimited(user=None, guest=None, format="tornrate:%s"):
             # Get IP Address
             # --------------
             # http://www.tornadoweb.org/en/stable/httputil.html?highlight=remote_ip#tornado.httputil.HTTPServerRequest.remote_ip
-            mktime = int(time.mktime(time.localtime()))
-            key = format % self.request.remote_ip
+            redis_key = redis_key_format % self.request.remote_ip
 
             # ----------------
             # Check Rate Limit
             # ----------------
             r = self.redis
-            current = r.get(key)
+            current = r.get(redis_key)
             if current is None:
-                r.setex(key, tokens-1, refresh)
+                r.setex(redis_key, tokens-1, refresh)
                 remaining, ttl = tokens-1, refresh
             else:
-                remaining, ttl = int(r.decr(key) or 0), int(r.ttl(key) or 0)
+                remaining, ttl = int(r.decr(redis_key) or 0), int(r.ttl(redis_key) or 0)
 
             # set headers
             self.set_header("X-RateLimit-Limit", tokens)
             self.set_header("X-RateLimit-Remaining", (0 if remaining < 0 else remaining))
-            self.set_header("X-RateLimit-Reset", mktime+ttl)
+            self.set_header("X-RateLimit-Reset", ttl)
 
             if remaining < 0:
-                if hasattr(self, 'was_rate_limited'):
-                    return self.was_rate_limited(tokens, (0 if remaining < 0 else remaining), mktime+ttl)
-                else:
-                    # Generic Exception
-                    # IMPORTANT headers are reset according to RequestHandler.send_error
-                    # read more at http://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.send_error
-                    raise HTTPError(403, "rate-limited")
+                self.log(ratelimited=True, ttl=ttl)
+                do_continue = self.was_rate_limited(tokens, (0 if remaining < 0 else remaining), ttl)
+                if do_continue is not True:
+                    return
 
             # Continue with method
             return method(self, *args, **kwargs)

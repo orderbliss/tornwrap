@@ -43,10 +43,10 @@ class RequestHandler(web.RequestHandler):
         accept = self.request.headers.get("Accept", "")
         export = (self.path_kwargs.get('export', None)
                   or ('html' if 'text/html' in accept else
+                      'json' if 'application/json' in accept else
                       'txt' if 'text/plain' in accept else
                       'csv' if 'text/csv' in accept else
                       'xml' if 'text/xml' in accept else
-                      'json' if 'application/json' in accept else
                       self.application.settings.get('export_defaults', {"GET": "html"}).get(self.request.method, 'json'))).replace('.', '')
         self.set_header('Content-Type', "%s; charset=UTF-8" % CONTENT_TYPES[export])
         return export
@@ -59,6 +59,9 @@ class RequestHandler(web.RequestHandler):
             query.pop('_', None)  # ?_=1417978116609
             self._query = query
         return self._query
+
+    def was_rate_limited(self, tokens, remaining, ttl):
+        raise HTTPError(403, reason="You have been rate limited.")
 
     @property
     def fetch(self):
@@ -80,6 +83,7 @@ class RequestHandler(web.RequestHandler):
             kwargs = defs
         else:
             _url = "/".join(url)
+        kwargs = dict([(k, v) for k, v in kwargs.iteritems() if v is not None])
         return url_concat("%s://%s/%s" % (self.request.protocol, self.request.host, _url[1:] if _url.startswith('/') else _url), kwargs)
 
     @property
@@ -97,6 +101,7 @@ class RequestHandler(web.RequestHandler):
     def log(self, _exception_title=None, exc_info=None, **kwargs):
         try:
             default = self.get_log_payload() or {}
+            default['request'] = self.request_id
             default.update(kwargs)
             logger.log(default)
         except:  # pragma: no cover
@@ -139,7 +144,7 @@ class RequestHandler(web.RequestHandler):
         if type(chunk) is dict:
             chunk.setdefault('meta', {}).setdefault("status", self.get_status() or 200)
             self.set_status(int(chunk['meta']['status']))
-            chunk['meta']['request'] = self.id
+            chunk['meta']['request'] = self.request_id
 
             export = self.export
             if export in ('txt', 'html'):
