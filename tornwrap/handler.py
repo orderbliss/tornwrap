@@ -21,10 +21,9 @@ REMOVE_ACCESS_TOKEN = re.compile(r"access_token\=(\w+)")
 
 CONTENT_TYPES = {
     "html": "text/html",
-    "csv":  "text/csv", # coming soon
-    "xml":  "application/vnd.ms-excel", # coming soon
+    "csv":  "text/csv",
     "txt":  "text/plain",
-    "xml":  "text/xml", # coming soon
+    "xml":  "text/xml",
     "json": "application/json",
 }
 
@@ -42,23 +41,22 @@ class RequestHandler(web.RequestHandler):
     @property
     def export(self):
         accept = self.request.headers.get("Accept", "")
-        export = (self.path_kwargs.get('export', None) \
-                  or ('html'  if 'text/html'                in accept else \
-                      'txt'   if 'text/plain'               in accept else \
-                      'csv'   if 'text/csv'                 in accept else \
-                      'xml'   if 'text/xml'                 in accept else \
-                      'xls'   if 'application/vnd.ms-excel' in accept else \
-                      'json'  if 'application/json'         in accept else \
-                      self.application.settings.get('export_defaults', {"GET":"html"}).get(self.request.method, 'json'))).replace('.', '')
+        export = (self.path_kwargs.get('export', None)
+                  or ('html' if 'text/html' in accept else
+                      'txt' if 'text/plain' in accept else
+                      'csv' if 'text/csv' in accept else
+                      'xml' if 'text/xml' in accept else
+                      'json' if 'application/json' in accept else
+                      self.application.settings.get('export_defaults', {"GET": "html"}).get(self.request.method, 'json'))).replace('.', '')
         self.set_header('Content-Type', "%s; charset=UTF-8" % CONTENT_TYPES[export])
         return export
 
     @property
     def query(self):
         if not hasattr(self, "_query"):
-            query = dict([(k, v[0] if len(v)==1 else v) for k, v in self.request.query_arguments.items() if v!=['']]) if self.request.query_arguments else {}
+            query = dict([(k, v[0] if len(v) == 1 else v) for k, v in self.request.query_arguments.items() if v != ['']]) if self.request.query_arguments else {}
             query.pop('access_token', False)
-            query.pop('_', None) # ?_=1417978116609
+            query.pop('_', None)  # ?_=1417978116609
             self._query = query
         return self._query
 
@@ -69,13 +67,12 @@ class RequestHandler(web.RequestHandler):
         """
         return AsyncHTTPClient().fetch
 
-    def get_rollbar_payload(self):
-        return {}
-
     def get_log_payload(self):
-        return {}
+        return {"request": self.request_id}
 
     def get_url(self, *url, **kwargs):
+        """Create urls quickly using the current requests domain
+        """
         if url and url[0] is True:
             _url = self.request.path
             defs = self.query.copy()
@@ -86,30 +83,27 @@ class RequestHandler(web.RequestHandler):
         return url_concat("%s://%s/%s" % (self.request.protocol, self.request.host, _url[1:] if _url.startswith('/') else _url), kwargs)
 
     @property
-    def id(self):
+    def request_id(self):
+        """Access request id value
+        """
         if not hasattr(self, '_id'):
             self._id = self.request.headers.get('X-Request-Id', str(uuid4()))
         return self._id
 
     def set_default_headers(self):
-        del self._headers["Server"]
-        self._headers['X-Request-Id'] = self.id
+        # set the internal request id in the headers
+        self._headers['X-Request-Id'] = self.request_id
 
     def log(self, _exception_title=None, exc_info=None, **kwargs):
         try:
-            logger.log(kwargs)
-        except: # pragma: no cover
+            default = self.get_log_payload() or {}
+            default.update(kwargs)
+            logger.log(default)
+        except:  # pragma: no cover
             logger.traceback()
 
     def traceback(self, **kwargs):
         self.save_traceback(sys.exc_info())
-        if self.settings.get('rollbar_access_token') and rollbar:
-            try:
-                # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L246
-                self._rollbar_token = rollbar.report_exc_info(extra_data=kwargs, payload_data=self.get_rollbar_payload())
-                kwargs['rollbar'] = self._rollbar_token
-            except: # pragma: no cover
-                logger.traceback()
         logger.traceback(**kwargs)
 
     def save_traceback(self, exc_info):
@@ -121,7 +115,7 @@ class RequestHandler(web.RequestHandler):
         try:
             if typ is web.MissingArgumentError:
                 self.log("MissingArgumentError", missing=str(value))
-                self.write_error(400, type="MissingArgumentError", reason="Missing required argument `%s`"%value.arg_name, exc_info=(typ, value, tb))
+                self.write_error(400, type="MissingArgumentError", reason="Missing required argument `%s`" % value.arg_name, exc_info=(typ, value, tb))
 
             elif typ is ValidationError:
                 self.log("ValidationError", message=str(value))
@@ -131,25 +125,16 @@ class RequestHandler(web.RequestHandler):
                 if typ is not HTTPError or (typ is HTTPError and value.status_code >= 500):
                     logger.traceback(exc_info=(typ, value, tb))
 
-                if self.settings.get('rollbar_access_token') and rollbar and not (typ is HTTPError and value.status_code < 500):
-                    # https://github.com/rollbar/pyrollbar/blob/d79afc8f1df2f7a35035238dc10ba0122e6f6b83/rollbar/__init__.py#L218
-                    try:
-                        self._rollbar_token = rollbar.report_exc_info(exc_info=(typ, value, tb), 
-                                                                      request=self.request, 
-                                                                      payload_data=self.get_rollbar_payload())
-                    except: # pragma: no cover
-                        logger.traceback()
-
                 super(RequestHandler, self).log_exception(typ, value, tb)
 
-        except: # pragma: no cover
+        except:  # pragma: no cover
             super(RequestHandler, self).log_exception(typ, value, tb)
 
     def finish(self, chunk=None):
         # Manage Results
         # --------------
         if type(chunk) is list:
-            chunk = {self.resource:chunk,"meta":{"total":len(chunk)}}
+            chunk = {self.resource: chunk, "meta": {"total": len(chunk)}}
 
         if type(chunk) is dict:
             chunk.setdefault('meta', {}).setdefault("status", self.get_status() or 200)
@@ -160,9 +145,10 @@ class RequestHandler(web.RequestHandler):
             if export in ('txt', 'html'):
                 doc = None
                 if self.get_status() in (200, 201):
+                    print "\033[92m....\033[0m", 'here'
                     if hasattr(self, "resource"):
                         # ex:  html/customers_get_one.html
-                        doc = "%s/%s_%s_%s.%s" % (export, self.resource, self.request.method.lower(), 
+                        doc = "%s/%s_%s_%s.%s" % (export, self.resource, self.request.method.lower(),
                                                   ("one" if self.path_kwargs.get('id') and self.path_kwargs.get('more') is None else "many"), export)
                 else:
                     # ex:  html/error/401.html
@@ -172,7 +158,7 @@ class RequestHandler(web.RequestHandler):
                     try:
                         chunk = self.render_string(doc, **chunk)
                     except IOError:
-                        chunk = "template not found at %s"%doc
+                        chunk = "template not found at " + doc
 
         # Finish Request
         # --------------
@@ -188,7 +174,7 @@ class RequestHandler(web.RequestHandler):
         return super(RequestHandler, self).render_string(template, dumps=dumps, **data)
 
     def write_error(self, status_code, reason=None, exc_info=None):
-        data = dict(for_human=reason or self._reason or "unknown", 
+        data = dict(for_human=reason or self._reason or "unknown",
                     for_robot="unknown")
         if exc_info:
             # to the request
@@ -208,16 +194,16 @@ class RequestHandler(web.RequestHandler):
             elif isinstance(error, HTTPError):
                 if error.status_code == 401:
                     self.set_header('WWW-Authenticate', 'Basic realm=Restricted')
-                    
+
                 data['for_robot'] = error.log_message
 
             else:
                 data['for_robot'] = str(error)
-        
+
         self.set_status(status_code)
-        
+
         if hasattr(self, '_rollbar_token') and self._rollbar_token:
             self.set_header('X-Rollbar-Token', self._rollbar_token)
             data['rollbar'] = self._rollbar_token
 
-        self.finish({"error":data})
+        self.finish({"error": data})

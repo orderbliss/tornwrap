@@ -6,6 +6,5 @@ from .handler import RequestHandler
 from .ratelimited import ratelimited
 
 from . import logger
-from . import metrics
 
-version = VERSION = __version__ = "0.2.15"
+version = VERSION = __version__ = "0.3.0"

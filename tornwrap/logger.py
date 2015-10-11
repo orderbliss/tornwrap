@@ -10,7 +10,7 @@ from traceback import format_exception
 from tornado.web import RedirectHandler
 from tornado.web import StaticFileHandler
 
-DEBUG =          (str(os.getenv('DEBUG','FALSE')).upper() == 'TRUE')
+DEBUG = (str(os.getenv('DEBUG', 'FALSE')).upper() == 'TRUE')
 FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password\w*\=)(?P<secret>[^\&\s]+)')
 
 if DEBUG:
@@ -52,7 +52,7 @@ def json_defaults(obj):
         return repr(obj)
 
 
-def clean(data):
+def scrub(data):
     return FILTER_SECRETS.sub(r'\g<key>=secret', data)
 
 
@@ -80,10 +80,9 @@ def log(*args, **kwargs):
         if DEBUG:
             callerframerecord = inspect.stack()[1]
             info = inspect.getframeinfo(callerframerecord[0])
-            _log.info("\033[90mLOG\033[0m %s \033[90m%s\033[0m via \033[95m%s()\033[0m" % (info.filename, str(info.lineno), info.function))
             _log.info(highlight(dumps(d, indent=2, sort_keys=True, default=json_defaults), json_lexer, formatter))
         else:
-            _log.info(clean(dumps(d, default=json_defaults, sort_keys=True)))
+            _log.info(scrub(dumps(d, default=json_defaults, sort_keys=True)))
         if _debug:
             debug(_debug)
     except:
@@ -144,8 +143,8 @@ def handler(handler):
             add = "\033[92m%(method)s %(status)s\033[0m " % _basics
         
     if _basics['status'] > 499:
-        _log.fatal("%s%s"%(add, clean(dumps(_basics))))
+        _log.fatal("%s%s"%(add, scrub(dumps(_basics))))
     elif _basics['status'] > 399:
-        _log.warn("%s%s"%(add, clean(dumps(_basics))))
+        _log.warn("%s%s"%(add, scrub(dumps(_basics))))
     else:
-        _log.info("%s%s"%(add, clean(dumps(_basics))))
+        _log.info("%s%s"%(add, scrub(dumps(_basics))))

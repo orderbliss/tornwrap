@@ -33,7 +33,7 @@ def ratelimited(user=None, guest=None, format="tornrate:%s"):
             tokens, refresh = user if self.current_user else guest
             if tokens is None:
                 return method(self, *args, **kwargs)
-                
+
             # --------------
             # Get IP Address
             # --------------
@@ -62,7 +62,7 @@ def ratelimited(user=None, guest=None, format="tornrate:%s"):
                     return self.was_rate_limited(tokens, (0 if remaining < 0 else remaining), mktime+ttl)
                 else:
                     # Generic Exception
-                    # IMPORTANT headers are reset according to RequestHandler.send_error 
+                    # IMPORTANT headers are reset according to RequestHandler.send_error
                     # read more at http://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.send_error
                     raise HTTPError(403, "rate-limited")
 

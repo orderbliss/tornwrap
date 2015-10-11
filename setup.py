@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 from setuptools import setup
 
-classifiers = ["Development Status :: 4 - Beta",
-               "Environment :: Plugins",
-               "Intended Audience :: Developers",
-               "License :: OSI Approved :: Apache Software License",
-               "Topic :: Software Development :: Testing"]
+classifiers = ['Development Status :: 4 - Beta',
+               'Environment :: Plugins',
+               'Intended Audience :: Developers',
+               'License :: OSI Approved :: Apache Software License',
+               'Topic :: Software Development :: Testing']
 
 setup(name='tornwrap',
-      version="0.2.15",
-      description="tornado decorators and wrappers",
+      version='0.3.0',
+      description='tornado decorators and wrappers',
       long_description=None,
       classifiers=classifiers,
       keywords='tornado tornadoweb decorators wrapper authenticated rate limited validate error handle stripe intercom',
@@ -20,5 +20,5 @@ setup(name='tornwrap',
       packages=['tornwrap'],
       include_package_data=True,
       zip_safe=True,
-      install_requires=["tornado>=4.0.0", "valideer>=0.3.1", "timestring>=1.6.1"],
+      install_requires=['tornado>=4.0.0', 'valideer>=0.3.1', 'timestring>=1.6.1'],
       entry_points=None)

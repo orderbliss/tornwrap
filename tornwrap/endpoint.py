@@ -10,13 +10,13 @@ def endpoint(func):
     def wrapper(self, *args, **kwargs):
         # Require SSL
         # -----------
-        if not getattr(self, 'debug', False) and self.request.headers.get('X-Forwarded-Port') == '80': #pragma: no cover
+        if not getattr(self, 'debug', False) and self.request.headers.get('X-Forwarded-Port') == '80':  # pragma: no cover
             if self.request.method == 'GET':
                 self.redirect("https://%s%s" % (self.request.host, self.request.uri))
                 return
             else:
                 raise HTTPError(403, reason='ssl endpoint required')
-        
+
         self.body = {}
         self._rollbar_token = None
 
@@ -40,7 +40,7 @@ def endpoint(func):
             if '*' not in getattr(self.current_user, "scope", ['*']):
                 resource = "_".join((self.resource, method))
                 if resource not in self.current_user.scope and ("*_%s" % self.request.method.lower()) not in self.current_user.scope:
-                    raise HTTPError(401, reason="permission denied to resource at %s"%resource)
+                    raise HTTPError(401, reason="permission denied to resource at " + resource)
 
         # Validation
         # ----------

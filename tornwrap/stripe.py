@@ -5,20 +5,20 @@ from valideer import accepts
 from urllib import urlencode
 from tornado import httpclient
 from tornado.escape import json_decode
-from tornado.escape import json_encode
 from tornado.httputil import url_concat
 
 from .logger import log
 from .logger import traceback
 
-endpoints = valideer.Enum(('charges', 'customers', 'cards', 
-                           'subscription', 'plans', 'coupons', 
-                           'discount', 'invoices', 'upcoming', 
-                           'lines', 'invoiceitems', 'dispute', 
+endpoints = valideer.Enum(('charges', 'customers', 'cards',
+                           'subscription', 'plans', 'coupons',
+                           'discount', 'invoices', 'upcoming',
+                           'lines', 'invoiceitems', 'dispute',
                            'close', 'transfers', 'cancel',
-                           'recipients', 'application_fees', 
+                           'recipients', 'application_fees',
                            'refund', 'account', 'balance', 'subscriptions',
                            'history', 'events', 'tokens', 'incoming'))
+
 
 class Stripe(object):
     """
@@ -57,24 +57,23 @@ class Stripe(object):
     def put(self, http_client=None, **kwargs):
         result = yield self._api_request('PUT', http_client, kwargs)
         raise gen.Return(result)
-    
+
     @gen.coroutine
     def _api_request(self, method, http_client, kwargs):
         if not http_client:
             http_client = httpclient.AsyncHTTPClient()
 
         # kwargs = validation.validate(kwargs)
-        kwargs = dict([(k, v) for k,v in kwargs.items() if v is not None])
+        kwargs = dict([(k, v) for k, v in kwargs.items() if v is not None])
         try:
             try:
                 if method in ('GET', 'DELETE'):
-                    response = yield http_client.fetch(url_concat("/".join(self._endpoints), self._nested_dict_to_url(kwargs)), 
+                    response = yield http_client.fetch(url_concat("/".join(self._endpoints), self._nested_dict_to_url(kwargs)),
                                                        method=method)
                 else:
-                    response = yield http_client.fetch("/".join(self._endpoints), 
+                    response = yield http_client.fetch("/".join(self._endpoints),
                                                        method=method, body=urlencode(self._nested_dict_to_url(kwargs)))
 
-                log(service="stripe", status=response.code, stripe=response.body, url=response.effective_url)
                 raise gen.Return((response.code, json_decode(response.body)))
 
             except httpclient.HTTPError as e:
@@ -87,7 +86,6 @@ class Stripe(object):
         except Exception as e:
             traceback(service="stripe")
             raise gen.Return((500, {'error': {'message': "unknown", 'code': 'unknown', 'type': 'unknown', 'param': 'n/a'}}))
-
 
     def _nested_dict_to_url(self, d):
         """

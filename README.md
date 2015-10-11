@@ -12,8 +12,6 @@ pip install tornwrap
   - limit usage for guests and authenticated users
 - [`@validated`](#validated)
   - using [valideer](https://github.com/podio/valideer) to validate and adapt body and/or url args
-- *wip* [`@metrics.handler`](#metrics.handler) and [`with metrics.new`](#withmetrics.new)
-  - wrap features and handlers to track performance and metrics
 - *future* [`@cached`](#cached)
   - cache requests, ex page builds
 - *future* [`@gist`](#gist)
@@ -56,7 +54,7 @@ class Handler(RequestHandler):
     def get(self, arguments):
         # can validate url arguments
         self.finish("Hello, %s!" % arguments['name'])
-    
+
     @validated(body={"+name":"string"})
     def post(self, body):
         # can validate body (json or urlencoded)
@@ -64,50 +62,6 @@ class Handler(RequestHandler):
 
 ```
 
-# `@metrics.handler` **wip**
-```python
-from tornwrap import metrics
-
-class Handler(RequestHandler):
-    @metrics.handler("pagename")
-    def get(self, metric):
-        # get from database
-        metric.speed.time("get")
-        # save to database
-        metric.speed.time("save")
-        
-        print metric
-
->>> [{"name": "speed", "source": "get",  "value": 2}, 
-     {"name": "speed", "source": "save", "value": 1}, 
-     {"name": "views", "source": "200",  "value": 1},
-     {"name": "views": "source": "user", "value": 1}]
-
-```
-
-# `with metrics.new` **wip**
-> Collect metrics on the product speed and feature usage. Metrics are logged and (optionally) sent to [Librato Metrics](https://librato.com/)
-
-```python
-from tornwrap import metrics
-
-with metrics.new("feature_name") as metric:
-    try:
-        # make a long http request
-        metric.speed.time("download")
-        # save it to the database
-        metric.speed.time("save")
-    except:
-        metric.count.incr("fail")
-    else:
-        metric.count.incr("success")
-
-print metric
->>> [{"name": "speed", "source": "download", "value": 4321}, 
-     {"name": "speed", "source": "save",     "value": 1235}, 
-     {"name": "count", "source": "success",  "value": 1}]
-
-```
 
 # `@cached` (future feature)
 > Cache the results of the http request.
@@ -131,7 +85,7 @@ class Handler(RequestHandler):
 > Will create methods for `async` methods to `get` and `set` too. We all <3 async!
 
 # `@gist` (future feature)
-> Fetch a Github gist content and return it to the handler method. 
+> Fetch a Github gist content and return it to the handler method.
 > Useful for chaning home page on the fly.
 
 ```python

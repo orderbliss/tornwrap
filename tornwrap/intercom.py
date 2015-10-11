@@ -10,7 +10,7 @@ from tornado.httputil import url_concat
 from .logger import log
 from .logger import traceback
 
-endpoints = valideer.Enum(('users', 'companies', 'admins', 'tags', 
+endpoints = valideer.Enum(('users', 'companies', 'admins', 'tags',
                            'segments', 'notes', 'events', 'counts', 'conversations'))
 
 
@@ -51,25 +51,25 @@ class Intercom(object):
     def put(self, httpclient=None, **kwargs):
         result = yield self._api_request('PUT', httpclient, kwargs)
         raise gen.Return(result)
-    
+
     @gen.coroutine
     def _api_request(self, method, http_client, kwargs):
         if not http_client:
             http_client = httpclient.AsyncHTTPClient()
 
         # kwargs = validation.validate(kwargs)
-        kwargs = dict([(k, v) for k,v in kwargs.items() if v is not None])
+        kwargs = dict([(k, v) for k, v in kwargs.items() if v is not None])
         try:
             try:
                 if method in ('GET', 'DELETE'):
-                    response = yield http_client.fetch(url_concat("/".join(self._endpoints), kwargs), 
-                                                      headers={'Accept':'application/json'},
-                                                      method=method)
+                    response = yield http_client.fetch(url_concat("/".join(self._endpoints), kwargs),
+                                                       headers={'Accept': 'application/json'},
+                                                       method=method)
                 else:
-                    response = yield http_client.fetch("/".join(self._endpoints), 
-                                                      headers={'Content-Type':'application/json'},
-                                                      method=method, body=json_encode(kwargs))
-                
+                    response = yield http_client.fetch("/".join(self._endpoints),
+                                                       headers={'Content-Type': 'application/json'},
+                                                       method=method, body=json_encode(kwargs))
+
                 log(service="intercom", status=response.code, stripe=response.body, url=response.effective_url)
                 raise gen.Return((response.code, json_decode(response.body)))
 

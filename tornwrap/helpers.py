@@ -23,11 +23,11 @@ def json_encode(data):
 escape.json_encode = json_encode
 
 
-TOKENIZER = re.compile('"|(/\*)|(\*/)|(//)|\n|\r')
+TOKENIZER = re.compile(r'"|(/\*)|(\*/)|(//)|\n|\r')
 END_SLASHES_RE = re.compile(r'(\\)*$')
 
 
-def json_minify(string, strip_space=True): # pragma: no cover
+def json_minify(string, strip_space=True):  # pragma: no cover
     """Removes whitespace from json strings, returning the string
     """
     in_string = False
@@ -55,7 +55,7 @@ def json_minify(string, strip_space=True): # pragma: no cover
             # start of string or unescaped quote character to end string
             if not in_string or (escaped is None or len(escaped.group()) % 2 == 0):
                 in_string = not in_string
-            index -= 1 # include " character in next catch
+            index -= 1  # include " character in next catch
         elif not (in_string or in_multi or in_single):
             if val == '/*':
                 in_multi = True

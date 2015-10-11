@@ -7,6 +7,7 @@ class boolean(Validator):
     name = "bool"
     true = ("y", "yes", "1", "t", "true", "on")
     false = ("n", "no", "0", "f", "false", "off")
+
     def validate(self, value, adapt=True):
         if type(value) is bool:
             return value
@@ -28,6 +29,7 @@ class timezone(String):
         "US/PACIFIC": "US/Pacific", "PST": "US/Pacific", "-7": "US/Pacific",
         "UTC": "UTC", "+0": "UTC", "0": "UTC", "-0": "UTC"
     }
+
     def validate(self, value, adapt=True):
         super(timezone, self).validate(value)
         result = self.timezones.get(value.upper())
@@ -38,13 +40,14 @@ class timezone(String):
 
 
 class uuid(Pattern):
-    name = "uuid"    
+    name = "uuid"
     regexp = re.compile(r"^[0-9a-f]{8}(-?[0-9a-f]{4}){3}-?[0-9a-f]{12}$")
 
 
 class _id(Pattern):
     name = "id"
     regexp = re.compile(r"^[1-9]\d*$")
+
     def validate(self, value, adapt=True):
         super(_id, self).validate(str(value))
         return int(value) if adapt else value
@@ -53,6 +56,7 @@ class _id(Pattern):
 class email(Pattern):
     name = "email"
     regexp = re.compile(r".+@.+\..+", re.I)
+
     def validate(self, value, adapt=True):
         super(email, self).validate(value)
         return value.lower() if adapt else value
@@ -66,6 +70,7 @@ class branch(Pattern):
 class commit(Pattern):
     name = "commit"
     regexp = re.compile(r"^\w{40}$")
+
     def validate(self, value, adapt=True):
         super(commit, self).validate(value)
         return str(value).lower() if adapt else value
@@ -83,6 +88,7 @@ class version(Pattern):
 
 class _callable(Validator):
     name = "callable"
+
     def validate(self, value, adapt=True):
         if not callable(value):
             self.error("value must be callable")
@@ -91,26 +97,29 @@ class _callable(Validator):
 
 class date(Validator):
     name = "date"
+
     def validate(self, value, adapt=True):
         try:
             date = timestring.Date(value)
             return date if adapt else value
         except timestring.TimestringInvalid as e:
-            self.error("invalid date provied, %s"%str(e))
+            self.error("invalid date provied, %s" % str(e))
 
 
 class date_past(Validator):
     name = "date-past"
+
     def validate(self, value, adapt=True):
         try:
             date = timestring.Date((value + " ago") if isinstance(value, (str, unicode)) else value)
             return date if adapt else value
         except timestring.TimestringInvalid as e:
-            self.error("invalid date provied, %s"%str(e))
+            self.error("invalid date provied, %s" % str(e))
 
 
 class range(Validator):
     name = "daterange"
+
     def validate(self, value, adapt=True):
         try:
             _range = timestring.Range(value)
@@ -121,6 +130,7 @@ class range(Validator):
 
 class day(String):
     name = "day"
+
     def validate(self, value, adapt=True):
         super(day, self).validate(str(value))
         if str(value) in tuple("0123456"):
@@ -135,6 +145,7 @@ class day(String):
 
 class rangetz(Validator):
     name = "daterangetz"
+
     def validate(self, value, adapt=True):
         try:
             if isinstance(value, timestring.Range):
@@ -148,6 +159,7 @@ class rangetz(Validator):
 
 class elapse(String):
     name = "elapse"
+
     def validate(self, value, adapt=True):
         super(elapse, self).validate(str(value))
         return str(len(timestring.Range(value)))
@@ -156,6 +168,7 @@ class elapse(String):
 class _float(Validator):
     name = "float"
     regexp = re.compile(r"\-?\d+(\,\d{3})*(\.\d+)?(k|m)?")
+
     def validate(self, value, adapt=True):
         if type(value) in (float, int, long):
             return float(value)
@@ -176,6 +189,7 @@ class _float(Validator):
 class integar(String):
     name = "int"
     regexp = re.compile(r"^(\d+(\.\d+)?\%|(\-?\d+(\,\d{3})*(\.\d+)?(k|m)?))$")
+
     def validate(self, value, adapt=True):
         if type(value) is int:
             return value
