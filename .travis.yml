@@ -11,12 +11,12 @@ env:
     - secure: "hA3hknzmAp9iieQcOphaFf+QLKanSNnuO+WLvPGECUFVkTz791MO/XFOBkAB\n7zUMbs8jS3oB6ISs0B0+AO7omoXWHFezWaR9WqZSMIZvVzGmxWiRX+KyLYN+\nruuTOK5RaiPfIkbzbTBw4yLV/kvZ2VAMiSitqIfDdWyWvJSvrCA="
     - secure: "ZqPn8U5pOF1zvTdrgKACM1IGyO2x4gaUopFhcWhX8P0Xswk34dV1g50m8xHR\nS8anDUxmSsWxpD6CviJJkyHOTZzdwAlOCmR5+pCX8fHa7JkEDFjHapCIYsvg\nYmzVV2cae4eTU8Faw2B6PV9qJykQQHMm/JdVgsjeMc7+hd6JcMw="
     - secure: "f/eODSkwYRlMwrLkPSipDevXi6nD1m3qYlOj9XL7yyi+EhUEzENB8ypgi9ca\nN9w+vFmKr12kjbMdcm/f1UCYCGyLq2UR9sq699e3zGRL8Xz3quLIP1I7VG5K\nk+FWysQ783PhnSaa71Gx0cU9oO/JS1X+X3zsyhtizGaY/f4dACM="
+    - DEBUG=true
 python:
   - 2.7
 install:
-  - pip install -r requirements.txt
-  - pip install -r tests/requirements.txt
+  - pip install -r requirements.txt -r tests/requirements.txt
 script:
-  nosetests --rednose --with-cov --cov-config=.coveragerc
+  - nosetests --rednose --with-cov --cov-config=.coveragerc
 after_success:
-  codecov
+  - codecov

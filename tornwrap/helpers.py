@@ -4,6 +4,11 @@ from tornado import escape
 from decimal import Decimal
 from datetime import datetime
 
+try:
+    import timestring
+except:  # pragma: no cover
+    timestring = None
+
 
 def json_defaults(obj):
     if isinstance(obj, Decimal):
@@ -13,6 +18,8 @@ def json_defaults(obj):
     elif hasattr(obj, 'json'):
         return obj.json()
     else:
+        if timestring and isinstance(obj, (timestring.Date, timestring.Range)):
+            return str(obj)
         return repr(obj)
 
 

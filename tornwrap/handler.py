@@ -150,7 +150,6 @@ class RequestHandler(web.RequestHandler):
             if export in ('txt', 'html'):
                 doc = None
                 if self.get_status() in (200, 201):
-                    print "\033[92m....\033[0m", 'here'
                     if hasattr(self, "resource"):
                         # ex:  html/customers_get_one.html
                         doc = "%s/%s_%s_%s.%s" % (export, self.resource, self.request.method.lower(),

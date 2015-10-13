@@ -3,7 +3,5 @@ nose
 rednose
 nose-cov
 codecov
-rollbar
 logentries
 pygments
-librato-metrics

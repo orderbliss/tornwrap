@@ -7,11 +7,11 @@ from tornwrap import validated
 
 
 class Handler(RequestHandler):
-    @validated({"+name":valideer.Enum(("steve", "casey"))})
+    @validated({"+name": valideer.Enum(("steve", "joe"))})
     def get(self, arguments):
         self.finish("Hello, %s!" % arguments.get('name', 'nobody'))
 
-    @validated(body={"name":valideer.Enum(("steve", "casey"))})
+    @validated(body={"name": valideer.Enum(("steve", "joe"))})
     def post(self, body):
         self.finish("Hello, %s!" % body.get('name', 'nobody'))
 
@@ -19,7 +19,7 @@ class Handler(RequestHandler):
     def patch(self):
         self.finish("Hello, World!")
 
-    @validated(arguments={"joe": "bool"}, body={"+name":valideer.Enum(("steve", "casey"))})
+    @validated(arguments={"joe": "bool"}, body={"+name": valideer.Enum(("steve", "joe"))})
     def put(self, arguments, body):
         self.finish("Hello, %s!" % arguments.get('name', 'nobody'))
 
@@ -56,29 +56,33 @@ class Test(AsyncHTTPTestCase):
         self.assertEqual(self.fetch("/", method="PATCH", body="").code, 200)
         self.assertEqual(self.fetch("/?_=123456789", method="PATCH", body="").code, 200)
 
-    def test_invali_body_args(self):
+    def test_invalid_body_args(self):
         response = self.fetch("/", method="POST", body="name")
         self.assertEqual(response.code, 400)
 
     def test_ignore_empty(self):
-        response = self.fetch("/?joe=", method="POST", body="name=casey")
+        response = self.fetch("/?joe=", method="POST", body="name=joe")
         self.assertEqual(response.code, 200)
 
     def test_valid_accepts(self):
         response = self.fetch("/", method="POST", body="name=steve", headers={"Accept": "application/json"})
-        self.assertEqual(response.code, 400)
+        self.assertEqual(response.code, 200)
 
     def test_extra_params(self):
         response = self.fetch("/?joe=true", method="PUT", body="name=steve")
         self.assertEqual(response.code, 200)
 
     def test_valid_body_json(self):
-        response = self.fetch("/", method="POST", body='{"name": "casey"}')
+        response = self.fetch("/", method="POST", body='{"name": "joe"}')
         self.assertEqual(response.code, 200)
-        self.assertEqual(response.body, "Hello, casey!")
+        self.assertEqual(response.body, "Hello, joe!")
 
     def test_invalid(self):
-        response = self.fetch("/?name=joe")
+        response = self.fetch("/?name=andy")
+        self.assertEqual(response.code, 400)
+
+    def test_multiple(self):
+        response = self.fetch("/?name=steve&name=andy")
         self.assertEqual(response.code, 400)
 
     def test_initial_values(self):

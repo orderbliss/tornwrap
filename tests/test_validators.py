@@ -97,7 +97,7 @@ class Test(unittest.TestCase):
 
     def test_email(self):
         schema = valideer.parse({"email": "email"})
-        for email in ('joe@example.com', 'hello@codecov.io', 'some123_!@a.b.cc.com'):
+        for email in ('def post(self, @example.com', 'hello@codecov.io', 'some123_!@a.b.cc.com'):
             self.assertEqual(schema.validate(dict(email=email))['email'], email.lower())
 
         for email in ('needsanat', 'nodom@fefe'):
@@ -115,10 +115,12 @@ class Test(unittest.TestCase):
     def test_callable(self):
         schema = valideer.parse({"callable": "callable"})
 
-        def callback(): pass
+        def callback():
+            pass
 
         class _object(object):
-            def __call__(self): pass
+            def __call__(self):
+                pass
 
         for _callable in (callback, _object()):
             self.assertEqual(schema.validate(dict(callable=_callable))['callable'], _callable)

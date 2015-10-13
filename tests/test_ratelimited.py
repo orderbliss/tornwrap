@@ -1,10 +1,10 @@
 import time
 import redis
 from tornado.web import Application
-from tornado.web import RequestHandler
 from tornado.testing import AsyncHTTPTestCase
 
 from tornwrap import ratelimited
+from tornwrap.handler import RequestHandler
 
 
 class Handler(RequestHandler):
@@ -24,7 +24,7 @@ class Handler(RequestHandler):
         self.write("Hello, world!")
 
     def get_current_user(self):
-        return self.request.headers.get('X-User')=='yes'
+        return self.request.headers.get('X-User') == 'yes'
 
     def was_rate_limited(self, tokens, remaining, ttl):
         # notice we do not raise HTTPError here
@@ -42,11 +42,12 @@ class HandlerNoCallback(RequestHandler):
         self.write("Hello, world!")
 
     def get_current_user(self):
-        return self.request.headers.get('X-User')=='yes'
+        return self.request.headers.get('X-User') == 'yes'
 
 
 class TestRateLimit(AsyncHTTPTestCase):
     redis = redis.Redis()
+
     def get_app(self):
         return Application([('/', Handler, dict(redis=self.redis)),
                             ('/no-callback', HandlerNoCallback, dict(redis=self.redis))])
@@ -90,4 +91,5 @@ class TestRateLimit(AsyncHTTPTestCase):
                     # self.assertEqual(response.body, "Rate Limited")
 
             # sleep and try again
-            if again: time.sleep(2)
+            if again:
+                time.sleep(2)
