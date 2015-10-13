@@ -9,7 +9,7 @@ from tornado.web import StaticFileHandler
 
 from .helpers import json_defaults
 
-FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password|client_id\w*\=)(?P<secret>[^\&\s]+)')
+FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password|client_id\w*\=)(?P<secret>[^\&\s]+)').sub
 
 _log = logging.getLogger()
 
@@ -31,10 +31,6 @@ except:  # pragma: no cover
 setLevel = _log.setLevel
 
 
-def scrub(data):
-    return FILTER_SECRETS.sub(r'\g<key>=secret', data)
-
-
 def traceback(exc_info=None, *args, **kwargs):
     if not exc_info:
         exc_info = sys.exc_info()
@@ -54,7 +50,7 @@ def log(*args, **kwargs):
         [d.update(a) for a in args]
         d.update(kwargs)
         _debug = kwargs.pop('debug') if 'debug' in kwargs else False
-        _log.info(scrub(dumps(d, default=json_defaults, sort_keys=True)))
+        _log.info(dumps(d, default=json_defaults, sort_keys=True))
         if _debug:
             debug(_debug)
     except:
@@ -86,11 +82,12 @@ def handler(handler):
     # Build log json
     _basics = {"status":    handler.get_status(),
                "method":    handler.request.method,
-               "url":       handler.request.uri,
+               "url":       FILTER_SECRETS(r'\g<key>=secret', handler.request.uri),
                "reason":    handler._reason,
                "ms":        "%.0f" % (1000.0 * handler.request.request_time())}
 
     if hasattr(handler, 'get_log_payload'):
         _basics.update(handler.get_log_payload() or {})
 
-    getattr(_log, 'fatal' if _basics['status'] > 499 else 'warn' if _basics['status'] > 399 else 'info')(scrub(dumps(_basics)))
+    getattr(_log, 'fatal' if _basics['status'] > 499 else 'warn' if _basics['status'] > 399 else 'info')(dumps(_basics))
+    return _basics

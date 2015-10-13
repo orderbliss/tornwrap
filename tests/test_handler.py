@@ -1,9 +1,10 @@
+import unittest
 from json import loads
 from tornado.web import Application
 from tornado.testing import AsyncHTTPTestCase
 
-from tornwrap import RequestHandler
 from tornwrap import logger
+from tornwrap import RequestHandler
 
 
 def tryint(v):
@@ -11,6 +12,37 @@ def tryint(v):
         return int(v)
     except:
         return v
+
+
+class TestLogHandler(unittest.TestCase):
+    @property
+    def request(self):
+        return self
+
+    @property
+    def method(self):
+        return 'GET'
+
+    @property
+    def _reason(self):
+        return 'Success'
+
+    @property
+    def uri(self):
+        return '/?access_token=abc123'
+
+    def get_status(self):
+        return 200
+
+    def request_time(self):
+        return 30
+
+    def test_scrubs_data(self):
+        res = logger.handler(self)
+        self.assertEqual(res['status'], 200)
+        self.assertEqual(res['method'], 'GET')
+        self.assertEqual(res['reason'], 'Success')
+        self.assertEqual(res['url'], '/?access_token=secret')
 
 
 class TestContentType(AsyncHTTPTestCase):
