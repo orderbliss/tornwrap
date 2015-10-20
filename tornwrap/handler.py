@@ -159,7 +159,7 @@ class RequestHandler(web.RequestHandler):
 
             error = exc_info[1]
             if isinstance(error, ValidationError):
-                self.set_status(400)
+                status_code = 400
                 if error.context:
                     context = error.context[0] if type(error.context) is list else error.context
                     reason = context + ' ' + str(error.msg)
@@ -167,7 +167,7 @@ class RequestHandler(web.RequestHandler):
                     reason = str(error.msg)
 
             elif isinstance(error, web.MissingArgumentError):
-                self.set_status(400)
+                status_code = 400
                 reason = "Missing required argument `%s`" % error.arg_name
                 context = error.arg_name
 
@@ -178,7 +178,7 @@ class RequestHandler(web.RequestHandler):
                 reason = error.message
 
             elif isinstance(error, AssertionError):
-                self.set_status(400)
+                status_code = 400
                 reason = str(error)
 
             else:
