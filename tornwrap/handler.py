@@ -1,4 +1,3 @@
-import re
 import sys
 from json import dumps
 from uuid import uuid4
@@ -16,8 +15,6 @@ except ImportError:
 
 from . import logger
 
-
-REMOVE_ACCESS_TOKEN = re.compile(r"access_token\=(\w+)")
 
 CONTENT_TYPES = {
     "html": "text/html",
