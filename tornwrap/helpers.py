@@ -15,12 +15,9 @@ def json_defaults(obj):
         return float(obj)
     elif isinstance(obj, datetime):
         return str(obj)
-    elif hasattr(obj, 'json'):
-        return obj.json()
-    else:
-        if timestring and isinstance(obj, (timestring.Date, timestring.Range)):
-            return str(obj)
-        return repr(obj)
+    elif timestring and isinstance(obj, (timestring.Date, timestring.Range)):
+        return str(obj)
+    return repr(obj)
 
 
 def json_encode(data):
