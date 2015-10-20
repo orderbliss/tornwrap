@@ -1,9 +1,9 @@
 import re
 import sys
-import tornpsql
 from json import dumps
 from uuid import uuid4
 from tornado import web
+from tornado import httpclient
 import traceback as _traceback
 from tornado.web import HTTPError
 from valideer import ValidationError
@@ -119,17 +119,21 @@ class RequestHandler(web.RequestHandler):
     def log_exception(self, typ, value, tb):
         try:
             if typ is web.MissingArgumentError:
-                self.log("MissingArgumentError", missing=str(value))
+                self.log(error='MissingArgumentError', reason=str(value))
                 self.write_error(400, type="MissingArgumentError", reason="Missing required argument `%s`" % value.arg_name, exc_info=(typ, value, tb))
 
             elif typ is ValidationError:
-                self.log("ValidationError", message=str(value))
+                self.log(error='ValidationError', reason=str(value))
                 self.write_error(400, type="ValidationError", reason=str(value), exc_info=(typ, value, tb))
 
-            else:
-                if typ is not HTTPError or (typ is HTTPError and value.status_code >= 500):
-                    logger.traceback(exc_info=(typ, value, tb))
+            elif typ is AssertionError:
+                self.log(error='AssertionError', reason=str(value))
 
+            elif typ is httpclient.HTTPError:
+                self.log(error='ClientHTTPError', code=value.code)
+                logger.traceback(exc_info=(typ, value, tb))
+
+            else:
                 super(RequestHandler, self).log_exception(typ, value, tb)
 
         except:  # pragma: no cover
@@ -151,8 +155,8 @@ class RequestHandler(web.RequestHandler):
                 doc = None
                 if self.get_status() in (200, 201):
                     if hasattr(self, "resource"):
-                        # ex:  html/customers_get_one.html
-                        doc = "%s/%s_%s_%s.%s" % (export, self.resource, self.request.method.lower(),
+                        # ex:  html/customers/get_one.html
+                        doc = "%s/%s/%s_%s.%s" % (export, self.resource, self.request.method.lower(),
                                                   ("one" if self.path_kwargs.get('id') and self.path_kwargs.get('more') is None else "many"), export)
                 else:
                     # ex:  html/error/401.html
@@ -162,7 +166,9 @@ class RequestHandler(web.RequestHandler):
                     try:
                         chunk = self.render_string(doc, **chunk)
                     except IOError:
-                        chunk = "template not found at " + doc
+                        # no template found
+                        if export == 'txt':
+                            chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk['error']['for_human'])
 
         # Finish Request
         # --------------
@@ -186,28 +192,22 @@ class RequestHandler(web.RequestHandler):
 
             error = exc_info[1]
             if isinstance(error, ValidationError):
-                status_code = 400
+                self.set_status(400)
                 data['for_human'] = "Please review the following fields: %s" % ", ".join(error.context)
                 data['context'] = error.context
                 data['for_robot'] = error.message
 
-            elif isinstance(error, tornpsql.DataError):
-                self.error = dict(sql=str(error))
-                data['for_robot'] = "rejected sql query"
-
             elif isinstance(error, HTTPError):
-                if error.status_code == 401:
-                    self.set_header('WWW-Authenticate', 'Basic realm=Restricted')
+                data['for_human'] = error.reason
 
-                data['for_robot'] = error.log_message
+            elif isinstance(error, httpclient.HTTPError):
+                data['for_human'] = error.message
+
+            elif isinstance(error, AssertionError):
+                self.set_status(400)
+                data['for_human'] = str(error)
 
             else:
                 data['for_robot'] = str(error)
-
-        self.set_status(status_code)
-
-        if hasattr(self, '_rollbar_token') and self._rollbar_token:
-            self.set_header('X-Rollbar-Token', self._rollbar_token)
-            data['rollbar'] = self._rollbar_token
 
         self.finish({"error": data})
