@@ -37,6 +37,10 @@ class TestLogHandler(unittest.TestCase):
     def request_time(self):
         return 30
 
+    @property
+    def request_id(self):
+        return '1'
+
     def test_scrubs_data(self):
         res = logger.handler(self)
         self.assertEqual(res['status'], 200)
