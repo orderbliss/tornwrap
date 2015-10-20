@@ -1,5 +1,4 @@
 import sys
-from json import dumps
 from uuid import uuid4
 from tornado import web
 from tornado import httpclient
@@ -26,6 +25,8 @@ CONTENT_TYPES = {
 
 
 class RequestHandler(web.RequestHandler):
+    export = None
+
     def initialize(self, *a, **k):
         super(RequestHandler, self).initialize(*a, **k)
         if self.settings.get('error_template'):
@@ -35,8 +36,9 @@ class RequestHandler(web.RequestHandler):
     def debug(self):
         return self.application.settings.get('debug', False)
 
-    @property
-    def export(self):
+    def get_export(self):
+        if self.export:
+            return self.export
         accept = self.request.headers.get("Accept", "")
         export = (self.path_kwargs.get('export', None)
                   or ('html' if 'text/html' in accept else
@@ -68,7 +70,7 @@ class RequestHandler(web.RequestHandler):
         return AsyncHTTPClient().fetch
 
     def get_log_payload(self):
-        return {"request": self.request_id}
+        return {}
 
     def get_url(self, *url, **kwargs):
         """Create urls quickly using the current requests domain
@@ -95,46 +97,94 @@ class RequestHandler(web.RequestHandler):
         # set the internal request id in the headers
         self._headers['X-Request-Id'] = self.request_id
 
-    def log(self, _exception_title=None, exc_info=None, **kwargs):
+    def log(self, **kwargs):
         try:
             default = self.get_log_payload() or {}
-            default['request'] = self.request_id
+            default['id'] = self.request_id
             default.update(kwargs)
-            logger.log(default)
+            logger.log(**default)
         except:  # pragma: no cover
-            logger.traceback()
+            logger.traceback(**kwargs)
 
-    def traceback(self, **kwargs):
-        self.save_traceback(sys.exc_info())
-        logger.traceback(**kwargs)
+    def traceback(self, exc_info=None, **kwargs):
+        if not exc_info:
+            exc_info = sys.exc_info()
+        self.save_traceback(exc_info)
+        default = self.get_log_payload() or {}
+        default['id'] = self.request_id
+        default.update(kwargs)
+        logger.traceback(exc_info, **default)
 
     def save_traceback(self, exc_info):
-        if not hasattr(self, 'tracebacks'):
-            self.tracebacks = []
-        self.tracebacks.append(_traceback.format_exception(*exc_info))
+        if self.settings.get('save_traceback') is True:
+            if not hasattr(self, 'tracebacks'):
+                self.tracebacks = []
+            self.tracebacks.append(_traceback.format_exception(*exc_info))
 
     def log_exception(self, typ, value, tb):
+        if self.debug:
+            try:
+                from pygments import highlight
+                from pygments.lexers import get_lexer_by_name
+                from pygments.formatters import TerminalFormatter
+
+                tbtext = ''.join(_traceback.format_exception(typ, value, tb))
+                lexer = get_lexer_by_name("pytb", stripall=True)
+                formatter = TerminalFormatter()
+                sys.stderr.write('\n'+highlight(tbtext, lexer, formatter)+'\n')
+
+            except:
+                _traceback.print_tb(tb)
+
         try:
-            if typ is web.MissingArgumentError:
-                self.log(error='MissingArgumentError', reason=str(value))
-                self.write_error(400, type="MissingArgumentError", reason="Missing required argument `%s`" % value.arg_name, exc_info=(typ, value, tb))
-
-            elif typ is ValidationError:
-                self.log(error='ValidationError', reason=str(value))
-                self.write_error(400, type="ValidationError", reason=str(value), exc_info=(typ, value, tb))
-
-            elif typ is AssertionError:
-                self.log(error='AssertionError', reason=str(value))
-
-            elif typ is httpclient.HTTPError:
-                self.log(error='ClientHTTPError', code=value.code)
-                logger.traceback(exc_info=(typ, value, tb))
+            if typ in (
+                web.MissingArgumentError,
+                ValidationError,
+                AssertionError,
+                httpclient.HTTPError,
+                HTTPError
+            ):
+                self._log_error = dict(error=typ.__name__, reason=str(value))
 
             else:
-                super(RequestHandler, self).log_exception(typ, value, tb)
+                self.traceback()
 
         except:  # pragma: no cover
             super(RequestHandler, self).log_exception(typ, value, tb)
+
+    def write_error(self, status_code, reason=None, exc_info=None):
+        context = None
+        reason = None
+        if exc_info:
+            self.save_traceback(exc_info)
+
+            error = exc_info[1]
+            if isinstance(error, ValidationError):
+                self.set_status(400)
+                reason = str(error)
+                context = error.context[0] if type(error.context) is list else error.context
+
+            elif isinstance(error, web.MissingArgumentError):
+                self.set_status(400)
+                reason = "Missing required argument `%s`" % error.arg_name
+                context = error.arg_name
+
+            elif isinstance(error, HTTPError):
+                reason = error.reason
+
+            elif isinstance(error, httpclient.HTTPError):
+                reason = error.message
+
+            elif isinstance(error, AssertionError):
+                self.set_status(400)
+                reason = str(error)
+
+            else:
+                reason = str(error)
+
+        self.finish({"error": {"reason": reason,
+                               "type": type(error).__name__ if error else None,
+                               "context": context}})
 
     def finish(self, chunk=None):
         # Manage Results
@@ -147,7 +197,7 @@ class RequestHandler(web.RequestHandler):
             self.set_status(int(chunk['meta']['status']))
             chunk['meta']['request'] = self.request_id
 
-            export = self.export
+            export = self.get_export()
             if export in ('txt', 'html'):
                 doc = None
                 if self.get_status() in (200, 201):
@@ -162,7 +212,8 @@ class RequestHandler(web.RequestHandler):
                 if doc:
                     try:
                         chunk = self.render_string(doc, **chunk)
-                    except IOError:
+                    except:
+                        self.traceback()
                         # no template found
                         if export == 'txt':
                             chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk['error']['for_human'])
@@ -171,40 +222,3 @@ class RequestHandler(web.RequestHandler):
         # --------------
         super(RequestHandler, self).finish(chunk)
         return chunk
-
-    def render_string(self, template, **kwargs):
-        data = dict(owner=None, repo=None, file_name=None)
-        data.update(getattr(self.application, 'extra', {}))
-        data.update(self.path_kwargs)
-        data.update(kwargs)
-        data['debug'] = self.debug
-        return super(RequestHandler, self).render_string(template, dumps=dumps, **data)
-
-    def write_error(self, status_code, reason=None, exc_info=None):
-        data = dict(for_human=reason or self._reason or "unknown",
-                    for_robot="unknown")
-        if exc_info:
-            # to the request
-            self.save_traceback(exc_info)
-
-            error = exc_info[1]
-            if isinstance(error, ValidationError):
-                self.set_status(400)
-                data['for_human'] = "Please review the following fields: %s" % ", ".join(error.context)
-                data['context'] = error.context
-                data['for_robot'] = error.message
-
-            elif isinstance(error, HTTPError):
-                data['for_human'] = error.reason
-
-            elif isinstance(error, httpclient.HTTPError):
-                data['for_human'] = error.message
-
-            elif isinstance(error, AssertionError):
-                self.set_status(400)
-                data['for_human'] = str(error)
-
-            else:
-                data['for_robot'] = str(error)
-
-        self.finish({"error": data})
