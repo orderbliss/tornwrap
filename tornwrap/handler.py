@@ -161,8 +161,8 @@ class RequestHandler(web.RequestHandler):
             error = exc_info[1]
             if isinstance(error, ValidationError):
                 self.set_status(400)
-                reason = str(error)
                 context = error.context[0] if type(error.context) is list else error.context
+                reason = context + ' ' + str(error.msg)
 
             elif isinstance(error, web.MissingArgumentError):
                 self.set_status(400)
@@ -216,7 +216,7 @@ class RequestHandler(web.RequestHandler):
                         self.traceback()
                         # no template found
                         if export == 'txt':
-                            chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk['error']['for_human'])
+                            chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))
 
         # Finish Request
         # --------------
