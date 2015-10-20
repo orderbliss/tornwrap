@@ -153,8 +153,7 @@ class RequestHandler(web.RequestHandler):
             super(RequestHandler, self).log_exception(typ, value, tb)
 
     def write_error(self, status_code, reason=None, exc_info=None):
-        context = None
-        reason = None
+        error, context = None, None
         if exc_info:
             self.save_traceback(exc_info)
 
@@ -185,6 +184,7 @@ class RequestHandler(web.RequestHandler):
             else:
                 reason = str(error)
 
+        self.set_status(status_code)
         self.finish({"error": {"reason": reason,
                                "type": type(error).__name__ if error else None,
                                "context": context}})
