@@ -121,6 +121,10 @@ class RequestHandler(web.RequestHandler):
                 self.tracebacks = []
             self.tracebacks.append(_traceback.format_exception(*exc_info))
 
+    def log_exception_to_provider(self, typ, value, tb):
+        """Override to send traceback to a provider"""
+        pass
+
     def log_exception(self, typ, value, tb):
         if self.debug:
             try:
@@ -147,10 +151,12 @@ class RequestHandler(web.RequestHandler):
                 self._log_error = dict(error=typ.__name__, reason=str(value))
 
             else:
+                self.log_exception_to_provider()
                 self.traceback()
+                return super(RequestHandler, self).log_exception(typ, value, tb)
 
         except:  # pragma: no cover
-            super(RequestHandler, self).log_exception(typ, value, tb)
+            return super(RequestHandler, self).log_exception(typ, value, tb)
 
     def write_error(self, status_code, reason=None, exc_info=None):
         error, context = None, None
@@ -215,8 +221,9 @@ class RequestHandler(web.RequestHandler):
                 if doc:
                     try:
                         chunk = self.render_string(doc, **chunk)
-                    except:
-                        self.traceback()
+                    except Exception as e:
+                        if type(e) is not IOError:
+                            self.traceback()
                         # no template found
                         if export == 'txt':
                             chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))

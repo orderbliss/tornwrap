@@ -34,6 +34,9 @@ class TestLogHandler(unittest.TestCase):
     def get_status(self):
         return 200
 
+    def get_log_payload(self):
+        return {}
+
     def request_time(self):
         return 30
 
