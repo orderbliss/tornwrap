@@ -151,7 +151,7 @@ class RequestHandler(web.RequestHandler):
                 self._log_error = dict(error=typ.__name__, reason=str(value))
 
             else:
-                self.log_exception_to_provider()
+                self.log_exception_to_provider(typ, value, tb)
                 self.traceback()
                 return super(RequestHandler, self).log_exception(typ, value, tb)
 
