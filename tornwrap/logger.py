@@ -11,23 +11,26 @@ from tornado.web import StaticFileHandler
 from .helpers import json_defaults
 
 FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password|client_id\w*\=)(?P<secret>[^\&\s]+)').sub
+LOGLVL = os.getenv('LOGLVL', 'INFO')
 
 _log = logging.getLogger()
+# add sys.stdout
+stdout = logging.StreamHandler(sys.stdout)
+stdout.setLevel(getattr(logging, LOGLVL))
+_log.addHandler(stdout)
+_log.setLevel(getattr(logging, LOGLVL))
+
+
 DEBUG = (os.getenv('DEBUG') == 'TRUE')
 
 
 try:
     assert os.getenv('LOGENTRIES_TOKEN')
     from logentries import LogentriesHandler
-    _log = logging.getLogger('logentries')
-    _log.setLevel(getattr(logging, os.getenv('LOGLVL', "INFO")))
     _log.addHandler(LogentriesHandler(os.getenv('LOGENTRIES_TOKEN')))
 
 except:  # pragma: no cover
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    _log.addHandler(ch)
-    _log.setLevel(getattr(logging, os.getenv('LOGLVL', "INFO")))
+    pass
 
 
 setLevel = _log.setLevel

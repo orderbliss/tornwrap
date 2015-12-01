@@ -8,4 +8,4 @@ from .ratelimited import ratelimited
 
 from . import logger
 
-version = VERSION = __version__ = "0.3.4"
+version = VERSION = __version__ = "0.3.5"
