@@ -11,14 +11,15 @@ from tornado.web import StaticFileHandler
 from .helpers import json_defaults
 
 FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password|client_id\w*\=)(?P<secret>[^\&\s]+)').sub
-LOGLVL = os.getenv('LOGLVL', 'INFO')
+LOGLVL = getattr(logging, os.getenv('LOGLVL', 'INFO'))
 
-_log = logging.getLogger()
+_log = logging.getLogger('default')
+_log.setLevel(LOGLVL)
+
 # add sys.stdout
 stdout = logging.StreamHandler(sys.stdout)
-stdout.setLevel(getattr(logging, LOGLVL))
+stdout.setLevel(LOGLVL)
 _log.addHandler(stdout)
-_log.setLevel(getattr(logging, LOGLVL))
 
 
 DEBUG = (os.getenv('DEBUG') == 'TRUE')
