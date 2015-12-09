@@ -8,12 +8,14 @@ from traceback import format_exception
 from tornado.web import RedirectHandler
 from tornado.web import StaticFileHandler
 
-from .helpers import json_defaults
+from tornwrap.helpers import json_defaults
+
 
 FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password|client_id\w*\=)(?P<secret>[^\&\s]+)').sub
+DEBUG = (os.getenv('DEBUG') == 'TRUE')
 LOGLVL = getattr(logging, os.getenv('LOGLVL', 'INFO'))
 
-_log = logging.getLogger('default')
+_log = logging.getLogger('tornwrap')
 _log.setLevel(LOGLVL)
 
 # add sys.stdout
@@ -22,13 +24,12 @@ stdout.setLevel(LOGLVL)
 _log.addHandler(stdout)
 
 
-DEBUG = (os.getenv('DEBUG') == 'TRUE')
-
-
 try:
     assert os.getenv('LOGENTRIES_TOKEN')
     from logentries import LogentriesHandler
-    _log.addHandler(LogentriesHandler(os.getenv('LOGENTRIES_TOKEN')))
+    le = LogentriesHandler(os.getenv('LOGENTRIES_TOKEN'))
+    le.setLevel(LOGLVL)
+    _log.addHandler(le)
 
 except:  # pragma: no cover
     pass
