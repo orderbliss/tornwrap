@@ -1,29 +1,76 @@
 import unittest
 import valideer
 import timestring
+from ddt import ddt, data
 from valideer import ValidationError as error
 
 from tornwrap.validators import *
 
 
+@ddt
 class Test(unittest.TestCase):
+    def test_commit(self):
+        schema = valideer.parse({"value": "commit"})
+        for commit in ('d5eb3baabe1149158817640f9e27e6b947aef043',
+                       'd5eb3baabe1149158817640f9e27e6b947aef043',
+                       '1341:233tmgpeqmgpqm',
+                       '2f540b1af5fb5f432be686a77ed5206b589a7b52'):
+            assert schema.validate(dict(value=commit))
+
+        self.assertRaises(valideer.ValidationError, schema.validate, dict(value='_something odd'))
+        self.assertRaises(valideer.ValidationError, schema.validate, dict(value=None))
+
+    @data(("y", True), ("yes", True), ("1", True), ("t", True), ("true", True), ("on", True), (True, True),
+          ("n", False), ("no", False), ("0", False), ("f", False), ("false", False), ("off", False), (False, False),
+          ('idk', None), (range(10), None))
+    def test_bool(self, (value, boolean)):
+        if boolean is None:
+            with self.assertRaises(valideer.ValidationError):
+                validators.boolean().validate(value)
+        else:
+            res = validators.boolean().validate(value)
+            assert res == boolean
+
+    def test_version(self):
+        schema = valideer.parse({"value": "version"})
+        for version in ('0.0.1', '0.0.10', '0.2.10', '1.2.1'):
+            assert schema.validate(dict(value=version))
+
+        self.assertRaises(valideer.ValidationError, schema.validate, dict(value='-124.12.51'))
+        self.assertRaises(valideer.ValidationError, schema.validate, dict(value='_something-odd'))
+        self.assertRaises(valideer.ValidationError, schema.validate, dict(value=None))
+
+    def test_handler(self):
+        schema = valideer.parse({"value": "handler"})
+        for handler in ('valid-handler', 'someothername', '__hello.world-ok'):
+            assert schema.validate(dict(value=handler))
+
+        for invalid in "!@#{$%^&*(),<>?/'\";:[]{}\\|~`+":
+            self.assertRaises(valideer.ValidationError, schema.validate, dict(value='characters'+invalid))
+        self.assertRaises(valideer.ValidationError, schema.validate, dict(value=None))
+
+    def test_file(self):
+        schema = valideer.parse({"value": "file"})
+        for handler in ('app/base.py', 'codecov.sh'):
+            assert schema.validate(dict(value=handler))
+
+        for invalid in ('not/a/path', '**#^@', '../black'):
+            self.assertRaises(valideer.ValidationError, schema.validate, dict(value=invalid))
+
+    def test_branch(self):
+        schema = valideer.parse({"branch": "branch"})
+        for x in ('master', 'stable', 'something/thisoem', '-aples', '.dev', 'builds,/1@#$%&*'):
+            assert schema.validate(dict(branch=x))
+
+        for x in (False, None):
+            self.assertRaises(valideer.ValidationError, schema.validate, dict(branch=x))
+
     def test_uuid(self):
         schema = valideer.parse({"value": "uuid"})
         self.assertTrue(schema.validate(dict(value='84fc2f3a-f199-42ba-b24b-fa46455952f4')))
         self.assertRaises(error, schema.validate, dict(value='84fc2f3a-**-42ba-b24b-fa46455952f4'))
         self.assertRaises(error, schema.validate, dict(value='84fc2f3a-42ba-b24b-fa46455952f4'))
         self.assertRaises(error, schema.validate, dict(value=None))
-
-    def test_boolean(self):
-        schema = valideer.parse({"value": "bool"})
-        for x in ('y', 'yes', '1', 't', 'true', True, 'on'):
-            self.assertTrue(schema.validate(dict(value=x))['value'])
-
-        for x in ('n', 'no', '0', 'f', 'false', False, 'off'):
-            self.assertFalse(schema.validate(dict(value=x))['value'])
-
-        for x in ('not', None, 'random', object(), int):
-            self.assertRaises(error, schema.validate, dict(value=x))
 
     def test_timezone(self):
         schema = valideer.parse({"value": "timezone"})
@@ -69,27 +116,10 @@ class Test(unittest.TestCase):
         for x in ('not', None, 'random', object(), int, ):
             self.assertRaises(error, schema.validate, dict(value=x))
 
-    def test_commit(self):
-        schema = valideer.parse({"value": "commit"})
-
-        self.assertEqual(schema.validate(dict(value="a"*40))['value'], "a"*40)
-
-        for x in ('not', None, 'random', object(), int, -50, "19.123"):
-            self.assertRaises(error, schema.validate, dict(value=x))
-
     def test_ref(self):
         schema = valideer.parse({"value": "ref"})
 
         self.assertEqual(schema.validate(dict(value="a"*40))['value'], "a"*40)
-        self.assertEqual(schema.validate(dict(value="apples"))['value'], "apples")
-
-        for x in (None, object(), int, -50):
-            self.assertRaises(error, schema.validate, dict(value=x))
-
-    def test_branch(self):
-        schema = valideer.parse({"value": "branch"})
-
-        self.assertEqual(schema.validate(dict(value="large-name-that-seems-not-really/cool"))['value'], "large-name-that-seems-not-really/cool")
         self.assertEqual(schema.validate(dict(value="apples"))['value'], "apples")
 
         for x in (None, object(), int, -50):

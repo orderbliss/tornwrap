@@ -1,6 +1,7 @@
 import sys
 from uuid import uuid4
 from tornado import web
+from tornado import httputil
 from tornado import httpclient
 import traceback as _traceback
 from tornado.web import HTTPError
@@ -35,6 +36,9 @@ class RequestHandler(web.RequestHandler):
     @property
     def debug(self):
         return self.application.settings.get('debug', False)
+
+    def set_export(self, export):
+        self.export = export
 
     def get_export(self):
         if self.export:
@@ -178,55 +182,54 @@ class RequestHandler(web.RequestHandler):
                 context = error.arg_name
 
             elif isinstance(error, HTTPError):
-                reason = error.reason
+                reason = error.reason or httputil.responses.get(status_code, 'Unknown')
 
             elif isinstance(error, httpclient.HTTPError):
-                reason = error.message
+                reason = error.message or httputil.responses.get(status_code, 'Unknown')
 
             elif isinstance(error, AssertionError):
-                status_code = 400
-                reason = str(error)
+                error = error.message
+                if type(error) is tuple:
+                    status_code, reason, context = error + ((None, ) * (3 - len(error)))
+                else:
+                    status_code = 500
+                    reason = error
+                reason = reason or httputil.responses.get(status_code, 'Unknown')
 
             else:
                 reason = str(error)
 
         self.set_status(status_code)
-        self.finish({"error": {"reason": reason,
-                               "type": type(error).__name__ if error else None,
-                               "context": context}})
+        self.finish({"error": {"reason": reason, "context": context}})
 
     def finish(self, chunk=None):
         # Manage Results
         # --------------
-        if type(chunk) is list:
-            chunk = {self.resource: chunk, "meta": {"total": len(chunk)}}
-
-        if type(chunk) is dict:
+        if isinstance(chunk, dict):
             chunk.setdefault('meta', {}).setdefault("status", self.get_status() or 200)
             self.set_status(int(chunk['meta']['status']))
-            chunk['meta']['request'] = self.request_id
 
             export = self.get_export()
             if export in ('txt', 'html'):
                 doc = None
                 if self.get_status() in (200, 201):
                     if hasattr(self, "resource"):
-                        # ex:  html/customers/get_one.html
-                        doc = "%s/%s/%s_%s.%s" % (export, self.resource, self.request.method.lower(),
-                                                  ("one" if self.path_kwargs.get('id') and self.path_kwargs.get('more') is None else "many"), export)
+                        # ex:  html/customers/get.html
+                        doc = export + '/' + self.resource + '/' + self.request.method.lower() + '.' + export
                 else:
                     # ex:  html/error/401.html
-                    doc = "%s/errors/%s.%s" % (export, self.get_status(), export)
+                    doc = export + '/errors/' + str(self.get_status()) + '.' + export
 
                 if doc:
                     try:
                         chunk = self.render_string(doc, **chunk)
                     except Exception as e:
-                        if type(e) is not IOError:
-                            self.traceback()
+                        self.traceback()
+                        # if type(e) is not IOError:
                         # no template found
                         if export == 'txt':
                             chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))
+                        raise
 
         # Finish Request
         # --------------

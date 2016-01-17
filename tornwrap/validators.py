@@ -53,6 +53,44 @@ class _id(Pattern):
         return int(value) if adapt else value
 
 
+class url(Pattern):
+    name = "url"
+    regexp = re.compile(r"^(https?:\/\/)")
+
+
+class _file(String):
+    name = "file"
+
+    def validate(self, value, adapt=True):
+        super(_file, self).validate(value, adapt)
+        _value = os.path.join(os.getcwd(), value)
+        if not os.path.exists(_value):
+            raise ValidationError('unable to locate file at ' + _value)
+        return _value if adapt else value
+
+
+class branch(String):
+    name = "branch"
+
+    def validate(self, value, adapt=True):
+        super(branch, self).validate(value, adapt)
+        if value[:7] == 'origin/':
+            return value[7:]
+        elif value[:11] == 'refs/heads/':
+            return value[11:]
+        return value
+
+
+class handler(Pattern):
+    name = "handler"
+    regexp = re.compile(r"^[\w\-\.]{1,255}$")
+
+
+class slug(Pattern):
+    name = "slug"
+    regexp = re.compile(r"^[\w\-\.]{1,255}\/[\w\-\.]{1,255}$")
+
+
 class email(Pattern):
     name = "email"
     regexp = re.compile(r".+@.+\..+", re.I)
@@ -62,18 +100,28 @@ class email(Pattern):
         return value.lower() if adapt else value
 
 
-class branch(Pattern):
-    name = "branch"
-    regexp = re.compile(r"^[\w\-\.\/\*\=\+\@\#\$\%\,\&\:\;]{1,255}$")
+class percent(Pattern):
+    name = 'percent'
+    regexp = re.compile(r"^\d{1,3}(\.\d{1,2})?\%?$")
+
+    def validate(self, value, adapt=True):
+        super(percent, self).validate(value)
+        if adapt:
+            try:
+                return float(value.replace('%', ''))
+            except:
+                return float(value)
+
+        return value
 
 
 class commit(Pattern):
     name = "commit"
-    regexp = re.compile(r"^\w{40}$")
+    regexp = re.compile(r"^\d+:\w{12}|\w{40}$")
 
     def validate(self, value, adapt=True):
         super(commit, self).validate(value)
-        return str(value).lower() if adapt else value
+        return str(value).lower()
 
 
 class ref(Validator):
@@ -213,8 +261,8 @@ class cc_name(Pattern):
     regexp = re.compile(r"^.{1,50}$")
 
 
-class cc_cvc(Pattern):
-    name = "cc_cvc"
+class cc_cvv(Pattern):
+    name = "cc_cvv"
     regexp = re.compile(r"^\d{3,4}$")
 
 
@@ -230,4 +278,10 @@ class cc_exp_year(Pattern):
 
 class cc_number(Pattern):
     name = 'cc_number'
-    regexp = re.compile(r"^\d{15,16}$")
+    regexp = re.compile(r"^\d{4}(\-|\s)?\d{4}(\-|\s)?\d{4}(\-|\s)?\d{2,4}$")
+    replace = re.compile(r"[\D]")
+
+    def validate(self, value, adapt=True):
+        result = super(cc_number, self).validate(str(value))
+        nv = self.replace.sub('', str(result))
+        return nv if adapt else value

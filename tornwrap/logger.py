@@ -15,8 +15,9 @@ FILTER_SECRETS = re.compile(r'(?P<key>\w*secret|token|auth|password|client_id\w*
 DEBUG = (os.getenv('DEBUG') == 'TRUE')
 LOGLVL = getattr(logging, os.getenv('LOGLVL', 'INFO'))
 
-_log = logging.getLogger('tornwrap')
+_log = logging.getLogger()
 _log.setLevel(LOGLVL)
+
 
 # add sys.stdout
 stdout = logging.StreamHandler(sys.stdout)
