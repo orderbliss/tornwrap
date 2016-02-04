@@ -17,9 +17,11 @@ from . import logger
 
 
 CONTENT_TYPES = {
-    "html": "text/html",
+    "html": "text/html; charset=UTF-8",
     "csv":  "text/csv",
     "txt":  "text/plain",
+    "svg":  "image/svg+xml",
+    "md":   "text/plain+markdown",
     "xml":  "text/xml",
     "json": "application/json",
 }
@@ -41,17 +43,19 @@ class RequestHandler(web.RequestHandler):
         self.export = export
 
     def get_export(self):
-        if self.export:
-            return self.export
-        accept = self.request.headers.get("Accept", "")
-        export = (self.path_kwargs.get('export', None)
-                  or ('html' if 'text/html' in accept else
-                      'json' if 'application/json' in accept else
-                      'txt' if 'text/plain' in accept else
-                      'csv' if 'text/csv' in accept else
-                      'xml' if 'text/xml' in accept else
-                      self.application.settings.get('export_defaults', {"GET": "html"}).get(self.request.method, 'json'))).replace('.', '')
-        self.set_header('Content-Type', "%s; charset=UTF-8" % CONTENT_TYPES[export])
+        export = self.export
+        if not export:
+            # determin via Accept header
+            accept = self.request.headers.get('Accept', '')
+            export = (self.path_kwargs.get('export', None)
+                      or ('html' if 'text/html' in accept else
+                          'json' if 'application/json' in accept else
+                          'txt' if 'text/plain' in accept else
+                          'csv' if 'text/csv' in accept else
+                          'xml' if 'text/xml' in accept else
+                          self.application.settings.get('export_defaults', {}).get(self.request.method, 'html'))).replace('.', '')
+
+        self.set_header('Content-Type', CONTENT_TYPES[export])
         return export
 
     @property
@@ -197,19 +201,20 @@ class RequestHandler(web.RequestHandler):
                 reason = reason or httputil.responses.get(status_code, 'Unknown')
 
             else:
-                reason = str(error)
+                reason = 'Unknown'  # str(error)
 
         self.set_status(status_code)
         self.finish({"error": {"reason": reason, "context": context}})
 
     def finish(self, chunk=None):
-        # Manage Results
-        # --------------
-        if isinstance(chunk, dict):
+        export = self.get_export()
+        if self.get_status() == 204:
+            chunk = None
+
+        elif isinstance(chunk, dict):
             chunk.setdefault('meta', {}).setdefault("status", self.get_status() or 200)
             self.set_status(int(chunk['meta']['status']))
 
-            export = self.get_export()
             if export in ('txt', 'html'):
                 doc = None
                 if self.get_status() in (200, 201):
@@ -231,7 +236,5 @@ class RequestHandler(web.RequestHandler):
                             chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))
                         raise
 
-        # Finish Request
-        # --------------
         super(RequestHandler, self).finish(chunk)
         return chunk
