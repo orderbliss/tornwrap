@@ -43,22 +43,23 @@ def traceback(exc_info=None, **kwargs):
     if not exc_info:
         exc_info = sys.exc_info()
 
-    if DEBUG and exc_info:  # pragma: no cover
-        try:
-            from pygments import highlight
-            from pygments.lexers import get_lexer_by_name
-            from pygments.formatters import TerminalFormatter
+    # if DEBUG and exc_info:  # pragma: no cover
+    #     try:
+    #         from pygments import highlight
+    #         from pygments.lexers import get_lexer_by_name
+    #         from pygments.formatters import TerminalFormatter
 
-            tbtext = ''.join(_traceback.format_exception(*exc_info))
-            lexer = get_lexer_by_name("pytb", stripall=True)
-            formatter = TerminalFormatter()
-            sys.stderr.write('\n\033[90mtornwrap.logger.traceback:\033[0m '+dumps(kwargs, indent=2, sort_keys=True)+'\n'+highlight(tbtext, lexer, formatter)+'\n')
-            return
-        except:
-            pass
+    #         tbtext = ''.join(_traceback.format_exception(*exc_info))
+    #         lexer = get_lexer_by_name("pytb", stripall=True)
+    #         formatter = TerminalFormatter()
+    #         sys.stderr.write('\n\033[90mtornwrap.logger.traceback:\033[0m '+dumps(kwargs, indent=2, sort_keys=True)+'\n'+highlight(tbtext, lexer, formatter)+'\n')
+    #         return
+    #     except:
+    #         pass
 
     try:
         kwargs['traceback'] = format_exception(*exc_info)
+
     except:
         _log.error('Unable to parse traceback %s: %s' % (type(exc_info), repr(exc_info)))
 

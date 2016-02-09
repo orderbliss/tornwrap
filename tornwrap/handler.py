@@ -106,13 +106,13 @@ class RequestHandler(web.RequestHandler):
         self._headers['X-Request-Id'] = self.request_id
 
     def log(self, **kwargs):
-        try:
-            default = self.get_log_payload() or {}
-            default['id'] = self.request_id
-            default.update(kwargs)
-            logger.log(**default)
-        except:  # pragma: no cover
-            logger.traceback(**kwargs)
+        default = self.get_log_payload() or {}
+        default['id'] = self.request_id
+        default.update(kwargs)
+        logger.log(**default)
+        # try:
+        # except:  # pragma: no cover
+        #     logger.traceback(**kwargs)
 
     def traceback(self, exc_info=None, **kwargs):
         if not exc_info:
