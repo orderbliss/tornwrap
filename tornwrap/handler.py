@@ -216,25 +216,20 @@ class RequestHandler(web.RequestHandler):
             self.set_status(int(chunk['meta']['status']))
 
             if export in ('txt', 'html'):
-                doc = None
                 if self.get_status() in (200, 201):
-                    if hasattr(self, "resource"):
-                        # ex:  html/customers/get.html
-                        doc = export + '/' + self.resource + '/' + self.request.method.lower() + '.' + export
+                    doc = export + '/' + self.resource + '/' + self.request.method.lower() + '.' + export
                 else:
-                    # ex:  html/error/401.html
-                    doc = export + '/errors/' + str(self.get_status()) + '.' + export
+                    doc = export + '/error.' + export
 
-                if doc:
-                    try:
-                        chunk = self.render_string(doc, **chunk)
-                    except Exception as e:
-                        self.traceback()
-                        # if type(e) is not IOError:
-                        # no template found
-                        if export == 'txt':
-                            chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))
-                        raise
+                try:
+                    chunk = self.render_string(doc, **chunk)
+                except Exception as e:
+                    self.traceback()
+                    # if type(e) is not IOError:
+                    # no template found
+                    if export == 'txt':
+                        chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))
+                    raise
 
         super(RequestHandler, self).finish(chunk)
         return chunk
