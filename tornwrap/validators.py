@@ -105,7 +105,7 @@ class percent(Pattern):
     regexp = re.compile(r"^\d{1,3}(\.\d{1,2})?\%?$")
 
     def validate(self, value, adapt=True):
-        super(percent, self).validate(value)
+        super(percent, self).validate(str(value))
         if adapt:
             try:
                 return float(value.replace('%', ''))

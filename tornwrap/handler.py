@@ -201,10 +201,10 @@ class RequestHandler(web.RequestHandler):
                 reason = reason or httputil.responses.get(status_code, 'Unknown')
 
             else:
-                reason = 'Unknown'  # str(error)
+                reason = 'Unknown'
 
         self.set_status(status_code)
-        self.finish({"error": {"reason": reason, "context": context}})
+        self.finish({'error': {'reason': reason, 'context': context}})
 
     def finish(self, chunk=None):
         export = self.get_export()
@@ -223,12 +223,8 @@ class RequestHandler(web.RequestHandler):
 
                 try:
                     chunk = self.render_string(doc, **chunk)
-                except Exception as e:
+                except Exception:
                     self.traceback()
-                    # if type(e) is not IOError:
-                    # no template found
-                    if export == 'txt':
-                        chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))
                     raise
 
         super(RequestHandler, self).finish(chunk)
