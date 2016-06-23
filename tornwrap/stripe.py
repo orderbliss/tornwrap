@@ -21,6 +21,7 @@ endpoints = valideer.Enum(('charges', 'customers', 'cards',
 
 
 class Stripe(object):
+    __name__ = 'Stripe'
     """
     https://stripe.com/docs/api
     """
