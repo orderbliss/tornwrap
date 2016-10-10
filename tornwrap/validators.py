@@ -103,7 +103,7 @@ class email(Pattern):
 
 class percent(Pattern):
     name = 'percent'
-    regexp = re.compile(r"^\d{1,3}(\.\d{1,2})?\%?$")
+    regexp = re.compile(r"^\d{1,45}(\.\d{1,25})?\%?$")
 
     def validate(self, value, adapt=True):
         super(percent, self).validate(str(value))
