@@ -100,7 +100,6 @@ class RequestHandler(web.RequestHandler):
     def log(self, **kwargs):
         try:
             default = self.get_log_payload() or {}
-            default['id'] = self.request_id
             default.update(kwargs)
             logger.log(**default)
         except:  # pragma: no cover
@@ -111,7 +110,6 @@ class RequestHandler(web.RequestHandler):
             exc_info = sys.exc_info()
         self.save_traceback(exc_info)
         default = self.get_log_payload() or {}
-        default['id'] = self.request_id
         default.update(kwargs)
         logger.traceback(exc_info, **default)
 
@@ -204,7 +202,6 @@ class RequestHandler(web.RequestHandler):
         if type(chunk) is dict:
             chunk.setdefault('meta', {}).setdefault("status", self.get_status() or 200)
             self.set_status(int(chunk['meta']['status']))
-            chunk['meta']['request'] = self.request_id
 
             export = self.get_export()
             if export in ('txt', 'html'):
