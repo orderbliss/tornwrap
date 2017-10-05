@@ -30,11 +30,6 @@ CONTENT_TYPES = {
 class RequestHandler(web.RequestHandler):
     export = None
 
-    def initialize(self, *a, **k):
-        super(RequestHandler, self).initialize(*a, **k)
-        if self.settings.get('error_template'):
-            assert self.settings.get('template_path'), "settings `template_path` must be set to use custom `error_template`"
-
     @property
     def debug(self):
         return self.application.settings.get('debug', False)
@@ -93,33 +88,11 @@ class RequestHandler(web.RequestHandler):
         kwargs = dict([(k, v) for k, v in kwargs.iteritems() if v is not None])
         return url_concat("%s://%s/%s" % (self.request.protocol, self.request.host, _url[1:] if _url.startswith('/') else _url), kwargs)
 
-    @property
-    def request_id(self):
-        """Access request id value
-        """
-        if not hasattr(self, '_id'):
-            self._id = self.request.headers.get('X-Request-Id', str(uuid4()))
-        return self._id
-
-    def set_default_headers(self):
-        # set the internal request id in the headers
-        self._headers['X-Request-Id'] = self.request_id
-
-    def log(self, **kwargs):
-        default = self.get_log_payload() or {}
-        default['id'] = self.request_id
-        default.update(kwargs)
-        logger.log(**default)
-        # try:
-        # except:  # pragma: no cover
-        #     logger.traceback(**kwargs)
-
     def traceback(self, exc_info=None, **kwargs):
         if not exc_info:
             exc_info = sys.exc_info()
         self.save_traceback(exc_info)
         default = self.get_log_payload() or {}
-        default['id'] = self.request_id
         default.update(kwargs)
         logger.traceback(exc_info, **default)
 

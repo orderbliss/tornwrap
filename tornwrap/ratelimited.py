@@ -55,7 +55,6 @@ def ratelimited(user=None, guest=None, redis_key_format="ratelimited.%s"):
             self.set_header("X-RateLimit-Reset", ttl)
 
             if remaining < 0:
-                self.log(ratelimited=True, ttl=ttl)
                 do_continue = self.was_rate_limited(tokens, (0 if remaining < 0 else remaining), ttl)
                 if do_continue is not True:
                     return
