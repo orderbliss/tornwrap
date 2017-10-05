@@ -7,7 +7,7 @@ from tornado.escape import json_decode
 from .validators import *
 
 
-def validated(arguments=None, body=None, extra_arguments=False, extra_body=False):
+def validated(arguments=None, body=None, extra_arguments=True, extra_body=False):
     if type(body) in (dict, str):
         body = parse(body, additional_properties=extra_body)
     elif body not in (None, False):

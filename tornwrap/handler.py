@@ -1,6 +1,7 @@
 import sys
 from uuid import uuid4
 from tornado import web
+from tornado import httputil
 from tornado import httpclient
 import traceback as _traceback
 from tornado.web import HTTPError
@@ -16,9 +17,11 @@ from . import logger
 
 
 CONTENT_TYPES = {
-    "html": "text/html",
+    "html": "text/html; charset=UTF-8",
     "csv":  "text/csv",
     "txt":  "text/plain",
+    "svg":  "image/svg+xml",
+    "md":   "text/plain+markdown",
     "xml":  "text/xml",
     "json": "application/json",
 }
@@ -27,27 +30,27 @@ CONTENT_TYPES = {
 class RequestHandler(web.RequestHandler):
     export = None
 
-    def initialize(self, *a, **k):
-        super(RequestHandler, self).initialize(*a, **k)
-        if self.settings.get('error_template'):
-            assert self.settings.get('template_path'), "settings `template_path` must be set to use custom `error_template`"
-
     @property
     def debug(self):
         return self.application.settings.get('debug', False)
 
+    def set_export(self, export):
+        self.export = export
+
     def get_export(self):
-        if self.export:
-            return self.export
-        accept = self.request.headers.get("Accept", "")
-        export = (self.path_kwargs.get('export', None)
-                  or ('html' if 'text/html' in accept else
-                      'json' if 'application/json' in accept else
-                      'txt' if 'text/plain' in accept else
-                      'csv' if 'text/csv' in accept else
-                      'xml' if 'text/xml' in accept else
-                      self.application.settings.get('export_defaults', {"GET": "html"}).get(self.request.method, 'json'))).replace('.', '')
-        self.set_header('Content-Type', "%s; charset=UTF-8" % CONTENT_TYPES[export])
+        export = self.export
+        if not export:
+            # determin via Accept header
+            accept = self.request.headers.get('Accept', '')
+            export = (self.path_kwargs.get('export', None)
+                      or ('html' if 'text/html' in accept else
+                          'json' if 'application/json' in accept else
+                          'txt' if 'text/plain' in accept else
+                          'csv' if 'text/csv' in accept else
+                          'xml' if 'text/xml' in accept else
+                          self.application.settings.get('export_defaults', {}).get(self.request.method, 'html'))).replace('.', '')
+
+        self.set_header('Content-Type', CONTENT_TYPES[export])
         return export
 
     @property
@@ -84,26 +87,6 @@ class RequestHandler(web.RequestHandler):
             _url = "/".join(url)
         kwargs = dict([(k, v) for k, v in kwargs.iteritems() if v is not None])
         return url_concat("%s://%s/%s" % (self.request.protocol, self.request.host, _url[1:] if _url.startswith('/') else _url), kwargs)
-
-    @property
-    def request_id(self):
-        """Access request id value
-        """
-        if not hasattr(self, '_id'):
-            self._id = self.request.headers.get('X-Request-Id', str(uuid4()))
-        return self._id
-
-    def set_default_headers(self):
-        # set the internal request id in the headers
-        self._headers['X-Request-Id'] = self.request_id
-
-    def log(self, **kwargs):
-        try:
-            default = self.get_log_payload() or {}
-            default.update(kwargs)
-            logger.log(**default)
-        except:  # pragma: no cover
-            logger.traceback(**kwargs)
 
     def traceback(self, exc_info=None, **kwargs):
         if not exc_info:
@@ -176,56 +159,46 @@ class RequestHandler(web.RequestHandler):
                 context = error.arg_name
 
             elif isinstance(error, HTTPError):
-                reason = error.reason
+                reason = error.reason or httputil.responses.get(status_code, 'Unknown')
 
             elif isinstance(error, httpclient.HTTPError):
-                reason = error.message
+                reason = error.message or httputil.responses.get(status_code, 'Unknown')
 
             elif isinstance(error, AssertionError):
-                status_code = 400
-                reason = str(error)
+                error = error.message
+                if type(error) is tuple:
+                    status_code, reason, context = error + ((None, ) * (3 - len(error)))
+                else:
+                    status_code = 500
+                    reason = error
+                reason = reason or httputil.responses.get(status_code, 'Unknown')
 
             else:
-                reason = str(error)
+                reason = 'Unknown'
 
         self.set_status(status_code)
-        self.finish({"error": {"reason": reason,
-                               "type": type(error).__name__ if error else None,
-                               "context": context}})
+        self.finish({'error': {'reason': reason, 'context': context}})
 
     def finish(self, chunk=None):
-        # Manage Results
-        # --------------
-        if type(chunk) is list:
-            chunk = {self.resource: chunk, "meta": {"total": len(chunk)}}
+        export = self.get_export()
+        if self.get_status() == 204:
+            chunk = None
 
-        if type(chunk) is dict:
+        elif isinstance(chunk, dict):
             chunk.setdefault('meta', {}).setdefault("status", self.get_status() or 200)
             self.set_status(int(chunk['meta']['status']))
 
-            export = self.get_export()
             if export in ('txt', 'html'):
-                doc = None
                 if self.get_status() in (200, 201):
-                    if hasattr(self, "resource"):
-                        # ex:  html/customers/get_one.html
-                        doc = "%s/%s/%s_%s.%s" % (export, self.resource, self.request.method.lower(),
-                                                  ("one" if self.path_kwargs.get('id') and self.path_kwargs.get('more') is None else "many"), export)
+                    doc = export + '/' + self.resource + '/' + self.request.method.lower() + '.' + export
                 else:
-                    # ex:  html/error/401.html
-                    doc = "%s/errors/%s.%s" % (export, self.get_status(), export)
+                    doc = export + '/error.' + export
 
-                if doc:
-                    try:
-                        chunk = self.render_string(doc, **chunk)
-                    except Exception as e:
-                        if type(e) is not IOError:
-                            self.traceback()
-                        # no template found
-                        if export == 'txt':
-                            chunk = "HTTP %s\n%s" % (chunk['meta']['status'], chunk.get('error', {}).get('reason'))
+                try:
+                    chunk = self.render_string(doc, **chunk)
+                except Exception:
+                    self.traceback()
+                    raise
 
-        # Finish Request
-        # --------------
         super(RequestHandler, self).finish(chunk)
         return chunk

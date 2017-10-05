@@ -1,4 +1,5 @@
 redis
+ddt
 nose
 rednose
 nose-cov
