@@ -73,11 +73,12 @@ class Stripe(object):
                 response = yield http_client.fetch("/".join(self._endpoints),
                                                    method=method, body=urlencode(self._nested_dict_to_url(kwargs)))
 
-            raise gen.Return((response.code, json_decode(response.body)))
-
         except Exception as e:
             traceback(service="stripe")
             raise gen.Return((500, {'error': {'message': "unknown", 'code': 'unknown', 'type': 'unknown', 'param': 'n/a'}}))
+
+        else:
+            raise gen.Return((response.code, json_decode(response.body)))
 
     def _nested_dict_to_url(self, d):
         """
