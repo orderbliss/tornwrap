@@ -1,6 +1,5 @@
 from .helpers import *
 from stripe import Stripe
-from .endpoint import endpoint
 from .validated import validated
 from .handler import RequestHandler
 from .ratelimited import ratelimited

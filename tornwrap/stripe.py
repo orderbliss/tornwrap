@@ -7,7 +7,6 @@ from tornado import httpclient
 from tornado.escape import json_decode
 from tornado.httputil import url_concat
 
-from .logger import log
 from .logger import traceback
 
 endpoints = valideer.Enum(('charges', 'customers', 'cards',
@@ -67,22 +66,14 @@ class Stripe(object):
         # kwargs = validation.validate(kwargs)
         kwargs = dict([(k, v) for k, v in kwargs.items() if v is not None])
         try:
-            try:
-                if method in ('GET', 'DELETE'):
-                    response = yield http_client.fetch(url_concat("/".join(self._endpoints), self._nested_dict_to_url(kwargs)),
-                                                       method=method)
-                else:
-                    response = yield http_client.fetch("/".join(self._endpoints),
-                                                       method=method, body=urlencode(self._nested_dict_to_url(kwargs)))
+            if method in ('GET', 'DELETE'):
+                response = yield http_client.fetch(url_concat("/".join(self._endpoints), self._nested_dict_to_url(kwargs)),
+                                                   method=method)
+            else:
+                response = yield http_client.fetch("/".join(self._endpoints),
+                                                   method=method, body=urlencode(self._nested_dict_to_url(kwargs)))
 
-                raise gen.Return((response.code, json_decode(response.body)))
-
-            except httpclient.HTTPError as e:
-                log(service="stripe", status=e.response.code, body=e.response.body, url=e.response.effective_url)
-                raise gen.Return((e.response.code, json_decode(e.response.body)))
-
-        except gen.Return:
-            raise
+            raise gen.Return((response.code, json_decode(response.body)))
 
         except Exception as e:
             traceback(service="stripe")
