@@ -1,0 +1,8 @@
+redis
+ddt
+nose
+rednose
+nose-cov
+codecov
+logentries
+pygments
